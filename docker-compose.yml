@@ -1,0 +1,36 @@
+version: '3.8'
+
+networks:
+  imonitor-v4-network:
+    name: imonitor-v4-network
+
+services:
+  api:
+    build:
+      context: .
+      args:
+        APPLICATION_PORT: 5011
+    restart: always
+    image: imonitor-api-v4
+    container_name: imonitor-api-v4
+    ports:
+      - '8004:5011'
+    depends_on:
+      - redis-server
+    env_file:
+      - .env
+    environment:
+      NODE_ENV: production
+      REDIS_HOST: redis-server
+      REDIS_PORT: 6379
+    networks:
+      - imonitor-v4-network
+
+  redis-server:
+    image: 'redis:7.0.4-alpine'
+    restart: always
+    ports:
+      - '8005:6379'
+    command: redis-server --save 20 1 --loglevel warning --requirepass ${REDIS_PASSWORD:-changeme}
+    networks:
+      - imonitor-v4-network

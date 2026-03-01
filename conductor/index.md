@@ -12,8 +12,8 @@ Navigation hub for project context.
 
 ## Active Tracks
 
-<!-- Auto-populated by /conductor:new-track -->
+- [ ] **[Phase 1: Project Scaffolding & Infrastructure](./tracks/phase1-scaffolding_20260301/index.md)** — NestJS scaffold, TypeORM entities, legacy DB modules, Redis, clustering, logger
 
 ## Getting Started
 
-Run `/conductor:new-track` to create your first feature track.
+Run `/conductor:implement phase1-scaffolding_20260301` to start implementation.

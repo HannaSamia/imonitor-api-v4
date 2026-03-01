@@ -1,0 +1,42 @@
+# Compiled output
+dist
+build
+
+# Dependencies
+node_modules
+
+# IDE
+.vscode
+.idea
+*.code-workspace
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Env files
+.env
+
+# Logs
+logs
+*.log
+
+# Assets (generated)
+src/assets/exports
+src/assets/customerCare/bulkProcessing
+src/assets/customerCare/bulkProcessingOutput
+src/assets/customerCare/cis
+src/assets/customerCare/trace
+src/assets/tarrif
+
+# Coverage
+coverage
+.nyc_output
+
+# Test
+test-report.xml
+
+# npm
+*.tgz
+.npm
+.eslintcache
