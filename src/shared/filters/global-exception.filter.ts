@@ -44,17 +44,27 @@ export class GlobalExceptionFilter implements ExceptionFilter {
         return;
       }
 
-      // Format B: Standard HttpException — message only
+      // Format B: Standard HttpException — message + optional errors array
       const message =
         typeof exceptionResponse === 'string'
           ? exceptionResponse
           : exceptionResponse.message || exception.message;
 
-      response.status(status).json({
+      const responseBody: Record<string, unknown> = {
         status,
         message,
         success: false,
-      });
+      };
+
+      // Preserve errors array from BadRequestException (e.g. class-validator)
+      if (
+        typeof exceptionResponse === 'object' &&
+        Array.isArray(exceptionResponse.errors)
+      ) {
+        responseBody.errors = exceptionResponse.errors;
+      }
+
+      response.status(status).json(responseBody);
       return;
     }
 
