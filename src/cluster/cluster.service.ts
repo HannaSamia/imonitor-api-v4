@@ -23,6 +23,9 @@ export class ClusterService {
       });
 
       const port = parseInt(process.env.PORT || '5011', 10);
+      httpServer.on('error', (err) => {
+        ClusterService.logger.error(`Sticky session server error: ${err.message}`);
+      });
       httpServer.listen(port, () => {
         ClusterService.logger.warn(`Sticky session server listening on port ${port}`);
       });
