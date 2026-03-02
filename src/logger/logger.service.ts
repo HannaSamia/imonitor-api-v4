@@ -1,6 +1,7 @@
 import { Injectable, LoggerService as NestLoggerService } from '@nestjs/common';
 import * as winston from 'winston';
 import 'winston-daily-rotate-file';
+import { correlationStorage } from './correlation-id.middleware';
 
 const customLevels = {
   levels: {
@@ -28,17 +29,28 @@ const level = (): string => {
   return env === 'production' ? 'info' : 'debug';
 };
 
+const addCorrelationId = winston.format((info) => {
+  const correlationId = correlationStorage.getStore();
+  if (correlationId) {
+    info.correlationId = correlationId;
+  }
+  return info;
+});
+
 const consoleFormat = winston.format.combine(
   winston.format.timestamp({ format: 'YYYY-MM-DD HH:mm:ss' }),
+  addCorrelationId(),
   winston.format.colorize({ all: true }),
   winston.format.splat(),
-  winston.format.printf(({ timestamp, level, message }) => {
-    return `${timestamp} ${level}: ${message}`;
+  winston.format.printf(({ timestamp, level, message, correlationId }) => {
+    const cid = correlationId ? ` [${correlationId}]` : '';
+    return `${timestamp} ${level}:${cid} ${message}`;
   }),
 );
 
 const fileJsonFormat = winston.format.combine(
   winston.format.timestamp({ format: 'YYYY-MM-DD HH:mm:ss' }),
+  addCorrelationId(),
   winston.format.splat(),
   winston.format.json(),
 );
