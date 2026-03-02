@@ -38,6 +38,26 @@ export const ObservabilityEvents = {
   HEALTH_CHECK: 'observability.health.check',
 } as const;
 
+export const UserEvents = {
+  CREATED: 'user.created',
+  UPDATED: 'user.updated',
+  DELETED: 'user.deleted',
+  ROLE_CHANGED: 'user.role.changed',
+} as const;
+
+export const BulkProcessingEvents = {
+  STARTED: 'bulk.started',
+  COMPLETED: 'bulk.completed',
+  FAILED: 'bulk.failed',
+  PROGRESS: 'bulk.progress',
+} as const;
+
+export const ConnectivityEvents = {
+  SDP_LOOKUP: 'connectivity.sdp.lookup',
+  AIR_LOOKUP: 'connectivity.air.lookup',
+  CIS_LOOKUP: 'connectivity.cis.lookup',
+} as const;
+
 export const SystemEvents = {
   CONFIG_UPDATED: 'system.config.updated',
   CACHE_CLEARED: 'system.cache.cleared',
