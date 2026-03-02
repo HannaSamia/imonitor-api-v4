@@ -11,6 +11,7 @@ import { RedisModule } from './redis/redis.module';
 import { LoggerModule } from './logger/logger.module';
 import { AuthModule } from './auth/auth.module';
 import { SharedModule } from './shared/shared.module';
+import { HealthModule } from './health/health.module';
 import { CorrelationIdMiddleware } from './logger/correlation-id.middleware';
 import { RequestFilterMiddleware } from './shared/middleware/request-filter.middleware';
 import { RateLimiterMiddleware } from './shared/middleware/rate-limiter.middleware';
@@ -37,6 +38,7 @@ import { GlobalExceptionFilter } from './shared/filters/global-exception.filter'
     LoggerModule,
     AuthModule,
     SharedModule,
+    HealthModule,
   ],
   providers: [
     // Global guard — JWT auth on all routes (unless @Public())
