@@ -155,7 +155,7 @@ export class AppLogger implements NestLoggerService {
 
   verbose(message: string, ...optionalParams: any[]) {
     const ctx = optionalParams.length ? optionalParams[optionalParams.length - 1] : this.context;
-    winstonLogger.info(`[${ctx || 'Application'}] ${message}`);
+    winstonLogger.debug(`[${ctx || 'Application'}] ${message}`);
   }
 
   /** Direct access for custom levels (emerg, http) */
