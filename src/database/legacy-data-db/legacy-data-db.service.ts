@@ -1,9 +1,9 @@
-import { Injectable, Inject, Logger } from '@nestjs/common';
-import { Pool, ResultSetHeader } from 'mysql2/promise';
+import { Injectable, Inject, Logger, OnModuleDestroy } from '@nestjs/common';
+import { Pool, PoolConnection, ResultSetHeader } from 'mysql2/promise';
 import { LEGACY_DATA_DB, LEGACY_DATA_LIMITED_DB } from './legacy-data-db.module';
 
 @Injectable()
-export class LegacyDataDbService {
+export class LegacyDataDbService implements OnModuleDestroy {
   private readonly logger = new Logger(LegacyDataDbService.name);
 
   constructor(
@@ -11,26 +11,44 @@ export class LegacyDataDbService {
     @Inject(LEGACY_DATA_LIMITED_DB) private readonly limitedDb: Pool,
   ) {}
 
-  async query<T>(sql: string, values: Array<string | number | boolean | unknown> = [], retryCount = 3): Promise<T[]> {
-    const connection = await this.db.getConnection();
+  async onModuleDestroy(): Promise<void> {
     try {
-      const result = JSON.parse(JSON.stringify((await connection.query(sql, [...values]))[0])) as T[];
-      connection.release();
-      return result;
-    } catch (error) {
-      connection.release();
-      if ((error.code === 'ECONNRESET' || error.code === 'ETIMEDOUT' || error.code === 'EHOSTUNREACH') && retryCount > 0) {
-        this.logger.warn(`query encountered ${error.code}, retrying... (${retryCount})`);
+      await this.db.end();
+      this.logger.log('LEGACY_DATA_DB pool closed');
+    } catch (err: unknown) {
+      this.logger.error(`Error closing LEGACY_DATA_DB pool: ${(err as Error).message}`);
+    }
+    try {
+      await this.limitedDb.end();
+      this.logger.log('LEGACY_DATA_LIMITED_DB pool closed');
+    } catch (err: unknown) {
+      this.logger.error(`Error closing LEGACY_DATA_LIMITED_DB pool: ${(err as Error).message}`);
+    }
+  }
+
+  async query<T>(sql: string, values: Array<string | number | boolean | unknown> = [], retryCount = 3): Promise<T[]> {
+    let connection: PoolConnection | undefined;
+    try {
+      connection = await this.db.getConnection();
+      const [rows] = await connection.query(sql, [...values]);
+      return rows as T[];
+    } catch (error: unknown) {
+      const err = error as { code?: string; message?: string };
+      if ((err.code === 'ECONNRESET' || err.code === 'ETIMEDOUT' || err.code === 'EHOSTUNREACH') && retryCount > 0) {
+        this.logger.warn(`query encountered ${err.code}, retrying... (${retryCount})`);
         return this.query(sql, values, retryCount - 1);
       }
       this.logger.error('Error from query function', error);
       throw error;
+    } finally {
+      connection?.release();
     }
   }
 
   async multiQuery<T>(sql: string, values: Array<string | number | boolean | unknown> = []): Promise<Array<T[]>> {
     try {
-      return JSON.parse(JSON.stringify((await this.db.query(sql, [...values]))[0])) as Array<T[]>;
+      const [rows] = await this.db.query(sql, [...values]);
+      return rows as Array<T[]>;
     } catch (error) {
       this.logger.error('Error from multiQuery function', error);
       throw error;
@@ -62,13 +80,15 @@ export class LegacyDataDbService {
   }
 
   async checkConnection(): Promise<boolean> {
+    let connection: PoolConnection | undefined;
     try {
-      const connection = await this.db.getConnection();
-      connection.release();
+      connection = await this.db.getConnection();
       return true;
-    } catch (error) {
-      this.logger.error(`Database connection failed: ${error.code}`);
+    } catch (error: unknown) {
+      this.logger.error(`Database connection failed: ${(error as { code?: string }).code}`);
       return false;
+    } finally {
+      connection?.release();
     }
   }
 }

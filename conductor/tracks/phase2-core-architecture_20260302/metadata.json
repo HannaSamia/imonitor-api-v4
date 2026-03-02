@@ -1,0 +1,19 @@
+{
+  "id": "phase2-core-architecture_20260302",
+  "title": "Phase 2: Core Architecture Setup",
+  "type": "feature",
+  "status": "not_started",
+  "created": "2026-03-02T14:00:00.000Z",
+  "updated": "2026-03-02T14:00:00.000Z",
+  "current_phase": 0,
+  "current_task": null,
+  "phases": {
+    "total": 9,
+    "completed": 0
+  },
+  "tasks": {
+    "total": 38,
+    "completed": 0
+  },
+  "commits": []
+}
