@@ -50,7 +50,14 @@ export class RedisService implements OnModuleDestroy {
   }
 
   async onModuleDestroy() {
-    await this.client.quit();
-    this.logger.log('Redis connection closed');
+    try {
+      await Promise.race([
+        this.client.quit(),
+        new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), 5000)),
+      ]);
+      this.logger.log('Redis connection closed');
+    } catch (err: unknown) {
+      this.logger.error(`Error closing Redis connection: ${(err as Error).message}`);
+    }
   }
 }
