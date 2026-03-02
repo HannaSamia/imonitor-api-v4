@@ -18,7 +18,7 @@ export class GlobalExceptionFilter implements ExceptionFilter {
     // HttpException (includes NestJS built-ins and our ApplicationException)
     if (exception instanceof HttpException) {
       const status = exception.getStatus();
-      const exceptionResponse = exception.getResponse() as any;
+      const exceptionResponse = exception.getResponse() as Record<string, unknown>;
 
       // Log to error transport with endpoint metadata (matching v3)
       this.logger.error(exception.message, {

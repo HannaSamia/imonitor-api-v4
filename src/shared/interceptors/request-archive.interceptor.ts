@@ -1,6 +1,7 @@
 import { Injectable, NestInterceptor, ExecutionContext, CallHandler, Logger } from '@nestjs/common';
 import { InjectDataSource } from '@nestjs/typeorm';
 import { DataSource } from 'typeorm';
+import { Request } from 'express';
 import { Observable } from 'rxjs';
 import { tap } from 'rxjs/operators';
 import { existsSync, writeFileSync, appendFileSync, mkdirSync } from 'fs';
@@ -40,7 +41,7 @@ export class RequestArchiveInterceptor implements NestInterceptor {
     );
   }
 
-  private async archiveRequest(request: any): Promise<void> {
+  private async archiveRequest(request: Request & { user?: { id?: string } }): Promise<void> {
     const hasAuth = !!request.headers.authorization;
     const url = request.originalUrl || request.url;
 
@@ -79,7 +80,7 @@ export class RequestArchiveInterceptor implements NestInterceptor {
     }
   }
 
-  private writeToFallbackFile(data: Record<string, any>): void {
+  private writeToFallbackFile(data: Record<string, unknown>): void {
     try {
       const logsDir = join(process.cwd(), 'logs', 'request-archive');
       if (!existsSync(logsDir)) {
