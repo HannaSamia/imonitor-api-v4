@@ -40,3 +40,6 @@ test-report.xml
 *.tgz
 .npm
 .eslintcache
+
+# Review artifacts
+.full-review
