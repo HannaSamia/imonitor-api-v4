@@ -19,7 +19,15 @@ async function bootstrap() {
   // Middleware chain order matching v3: compression → helmet → cors → body parsers → routes
   app.use(compression());
   app.use(helmet());
-  app.enableCors();
+
+  // CORS configuration (SH-02 security fix: explicit origin from env)
+  const configService = app.get(ConfigService);
+  const corsOrigin = configService.get<string>('CORS_ORIGIN', '*');
+  app.enableCors({
+    origin: corsOrigin === '*' ? true : corsOrigin.split(',').map((o) => o.trim()),
+    methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+    credentials: true,
+  });
 
   // Global validation pipe matching v3 format
   app.useGlobalPipes(createValidationPipe());
@@ -30,7 +38,6 @@ async function bootstrap() {
   app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 
   // Swagger API documentation (non-production or behind SWAGGER_ENABLED flag)
-  const configService = app.get(ConfigService);
   const swaggerEnabled = configService.get<string>('SWAGGER_ENABLED', 'true') !== 'false';
   if (swaggerEnabled) {
     const swaggerConfig = new DocumentBuilder()

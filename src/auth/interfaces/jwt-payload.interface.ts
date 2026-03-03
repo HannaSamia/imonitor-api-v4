@@ -3,6 +3,7 @@ export interface JwtPayload {
   email: string;
   credential: string;
   theme: string;
+  keepLogin?: boolean;
   iat?: number;
   exp?: number;
   sub?: string;

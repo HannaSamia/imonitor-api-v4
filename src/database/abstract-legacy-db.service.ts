@@ -78,7 +78,10 @@ export abstract class AbstractLegacyDbService {
 
   protected async closePool(pool: Pool, name: string): Promise<void> {
     try {
-      await Promise.race([pool.end(), new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), 5000))]);
+      await Promise.race([
+        pool.end(),
+        new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), 5000)),
+      ]);
       this.logger.log(`${name} pool closed`);
     } catch (err: unknown) {
       this.logger.error(`Error closing ${name} pool: ${(err as Error).message}`);

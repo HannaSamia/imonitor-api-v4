@@ -6,7 +6,7 @@ export const MYSQL_POOL_DEFAULTS = {
 } as const;
 
 /** TypeCast handler to fix VAR_STRING type coercion in mysql2 */
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
+
 export const mysqlTypeCast = (field: any, next: () => any) => {
   if (field.type === 'VAR_STRING') {
     return field.string();

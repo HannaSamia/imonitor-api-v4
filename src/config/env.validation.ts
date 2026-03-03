@@ -20,7 +20,16 @@ export const envValidationSchema = Joi.object({
   NODE_ENV: Joi.string().valid('development', 'production', 'test').default('development'),
 
   // Authentication
-  JWT_KEY: Joi.string().required(),
+  JWT_KEY: Joi.string()
+    .min(32)
+    .required()
+    .messages({ 'string.min': 'JWT_KEY must be at least 32 characters (256 bits) for HS256 security' }),
+
+  // CORS
+  CORS_ORIGIN: Joi.string().default('*'),
+
+  // Database pool
+  DB_POOL_SIZE: Joi.number().default(20),
 
   // Email
   MAIL_HOST: Joi.string().required(),

@@ -10,8 +10,8 @@ export function hasPrivilege(userRole: string, minimumRole: string): boolean {
     return false;
   }
 
-  const userIndex = ROLE_HIERARCHY.indexOf(userRole.toLowerCase());
-  const minIndex = ROLE_HIERARCHY.indexOf(minimumRole.toLowerCase());
+  const userIndex = ROLE_HIERARCHY.findIndex((r) => r.toLowerCase() === userRole.toLowerCase());
+  const minIndex = ROLE_HIERARCHY.findIndex((r) => r.toLowerCase() === minimumRole.toLowerCase());
 
   // Unknown roles are denied
   if (userIndex === -1 || minIndex === -1) {

@@ -1,20 +1,45 @@
-import { Injectable, CanActivate, ExecutionContext, ForbiddenException, Logger } from '@nestjs/common';
-import { InjectDataSource } from '@nestjs/typeorm';
-import { DataSource } from 'typeorm';
+import { Injectable, CanActivate, ExecutionContext, ForbiddenException, Logger, OnModuleInit } from '@nestjs/common';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
+import { CoreMinimumPrivileges } from '../../database/entities/core-minimum-privileges.entity';
+import { CorePrivileges } from '../../database/entities/core-privileges.entity';
 import { hasPrivilege } from '../helpers/privilege.helper';
 import { ErrorMessages } from '../../shared/constants';
 import { JwtPayload } from '../interfaces/jwt-payload.interface';
 
 /**
  * Dynamic privilege guard — replaces v3's authorize() middleware.
- * Queries core_minimum_privileges by route path + HTTP method,
+ * Caches core_minimum_privileges at startup (PC-02 performance fix),
  * then checks user's role on that module via core_privileges.
  */
 @Injectable()
-export class PrivilegeGuard implements CanActivate {
+export class PrivilegeGuard implements CanActivate, OnModuleInit {
   private readonly logger = new Logger(PrivilegeGuard.name);
 
-  constructor(@InjectDataSource() private readonly dataSource: DataSource) {}
+  /** Startup cache: route::method → minPriv row (PC-02 fix) */
+  private minPrivCache = new Map<string, CoreMinimumPrivileges>();
+  private cacheLoaded = false;
+
+  constructor(
+    @InjectRepository(CoreMinimumPrivileges)
+    private readonly minPrivRepo: Repository<CoreMinimumPrivileges>,
+    @InjectRepository(CorePrivileges)
+    private readonly privilegesRepo: Repository<CorePrivileges>,
+  ) {}
+
+  async onModuleInit() {
+    await this.loadMinPrivCache();
+  }
+
+  private async loadMinPrivCache(): Promise<void> {
+    const all = await this.minPrivRepo.find({ relations: { role: true } });
+    this.minPrivCache.clear();
+    for (const mp of all) {
+      this.minPrivCache.set(`${mp.request}::${mp.method}`, mp);
+    }
+    this.cacheLoaded = true;
+    this.logger.log(`Loaded ${all.length} minimum privilege rules into cache`);
+  }
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
     const request = context.switchToHttp().getRequest();
@@ -28,40 +53,31 @@ export class PrivilegeGuard implements CanActivate {
     const method = request.method;
 
     try {
-      // Query 1: Find minimum role required for this route + method
-      const minimumRoleRequired = await this.dataSource.query(
-        `SELECT moduleId,
-          (SELECT name FROM core_application_roles WHERE id = mp.roleRequired) AS roleRequired
-         FROM core_minimum_privileges AS mp
-         WHERE request = ? AND method = ?`,
-        [routePath, method],
-      );
+      // Lookup from cache instead of DB query (PC-02 performance fix)
+      const cacheKey = `${routePath}::${method}`;
+      const minPriv = this.minPrivCache.get(cacheKey) ?? null;
 
       // If route is not registered in minimum_privileges, allow through (v3 behavior)
-      if (!minimumRoleRequired || minimumRoleRequired.length === 0) {
+      if (!minPriv) {
         return true;
       }
 
-      const { moduleId, roleRequired } = minimumRoleRequired[0];
+      const roleRequired = minPriv.role?.name;
+      if (!roleRequired || !minPriv.moduleId) {
+        return true;
+      }
 
-      // Query 2: Get user's current role on this module
-      const userRoleResult = await this.dataSource.query(
-        `SELECT r.name AS currentRole
-         FROM core_application_roles AS r
-         WHERE r.id = (
-           SELECT p.RoleId FROM core_privileges AS p
-           WHERE p.ModuleId = ? AND p.UserId = ?
-         )`,
-        [moduleId, user.id],
-      );
+      // Query user's current role on this module (per-user, cannot cache globally)
+      const userPrivilege = await this.privilegesRepo.findOne({
+        where: { userId: user.id, moduleId: minPriv.moduleId },
+        relations: { role: true },
+      });
 
-      if (!userRoleResult || userRoleResult.length === 0) {
+      if (!userPrivilege?.role?.name) {
         throw new ForbiddenException(ErrorMessages.UNAUTHORIZED_ROLE);
       }
 
-      const currentRole = userRoleResult[0].currentRole;
-
-      if (!hasPrivilege(currentRole, roleRequired)) {
+      if (!hasPrivilege(userPrivilege.role.name, roleRequired)) {
         throw new ForbiddenException(ErrorMessages.UNAUTHORIZED_ROLE);
       }
 
