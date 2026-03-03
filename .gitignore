@@ -41,5 +41,6 @@ test-report.xml
 .npm
 .eslintcache
 
-# Review artifacts
+# Tool artifacts
 .full-review
+.full-stack-feature
