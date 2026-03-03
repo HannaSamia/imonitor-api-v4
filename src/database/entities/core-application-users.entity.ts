@@ -1,4 +1,4 @@
-import { Entity, PrimaryColumn, Column, OneToMany } from 'typeorm';
+import { Entity, PrimaryColumn, Column, OneToMany, Index } from 'typeorm';
 import { CoreApplicationRefreshToken } from './core-application-refresh-token.entity';
 import { CorePrivileges } from './core-privileges.entity';
 
@@ -11,6 +11,11 @@ export enum UserTheme {
 }
 
 @Entity('core_application_users')
+@Index('IDX_users_userName', ['userName'])
+@Index('IDX_users_email', ['email'])
+@Index('IDX_users_isDeleted', ['isDeleted'])
+@Index('IDX_users_email_isDeleted', ['email', 'isDeleted'])
+@Index('IDX_users_userName_isDeleted', ['userName', 'isDeleted'])
 export class CoreApplicationUsers {
   @PrimaryColumn({ type: 'varchar', length: 64, default: '' })
   id: string;

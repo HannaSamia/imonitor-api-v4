@@ -2,6 +2,7 @@ import { Entity, PrimaryColumn, Column, Index, ManyToOne, JoinColumn } from 'typ
 import { CoreApplicationUsers } from './core-application-users.entity';
 
 @Entity('core_application_refresh_token')
+@Index('IDX_refreshToken_jwtId', ['jwtId'])
 export class CoreApplicationRefreshToken {
   @PrimaryColumn({ type: 'varchar', length: 64, default: '' })
   id: string;

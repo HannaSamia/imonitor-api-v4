@@ -1,8 +1,7 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { getRepositoryToken } from '@nestjs/typeorm';
-import { ConfigService } from '@nestjs/config';
+import { JwtService } from '@nestjs/jwt';
 import { BadRequestException, UnauthorizedException } from '@nestjs/common';
-import * as jwt from 'jsonwebtoken';
 import { AuthService } from './auth.service';
 import { CoreApplicationUsers } from '../../database/entities/core-application-users.entity';
 import { CoreApplicationRoles } from '../../database/entities/core-application-roles.entity';
@@ -13,8 +12,6 @@ import { PasswordService } from '../../shared/services/password.service';
 import { DateHelperService } from '../../shared/services/date-helper.service';
 import { SystemConfigService } from '../../shared/services/system-config.service';
 import { ErrorMessages } from '../../shared/constants';
-
-const JWT_KEY = 'test-jwt-secret';
 
 const mockUser = {
   id: 'user-1',
@@ -55,10 +52,10 @@ describe('AuthService', () => {
   let refreshTokenRepo: any;
   let privilegesRepo: any;
   let modulesRepo: any;
+  let jwtServiceMock: any;
   let passwordService: any;
   let dateHelper: any;
   let systemConfigService: any;
-  let configService: any;
 
   beforeEach(async () => {
     usersRepo = {
@@ -82,6 +79,10 @@ describe('AuthService', () => {
     modulesRepo = {
       findOne: jest.fn(),
     };
+    jwtServiceMock = {
+      sign: jest.fn().mockReturnValue('mock-jwt-token'),
+      verify: jest.fn(),
+    };
     passwordService = {
       isPasswordValid: jest.fn(),
       hashPassword: jest.fn(),
@@ -93,9 +94,6 @@ describe('AuthService', () => {
     systemConfigService = {
       getConfigValue: jest.fn().mockResolvedValue('30'),
     };
-    configService = {
-      get: jest.fn().mockReturnValue(JWT_KEY),
-    };
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [
@@ -105,10 +103,10 @@ describe('AuthService', () => {
         { provide: getRepositoryToken(CoreApplicationRefreshToken), useValue: refreshTokenRepo },
         { provide: getRepositoryToken(CorePrivileges), useValue: privilegesRepo },
         { provide: getRepositoryToken(CoreModules), useValue: modulesRepo },
+        { provide: JwtService, useValue: jwtServiceMock },
         { provide: PasswordService, useValue: passwordService },
         { provide: DateHelperService, useValue: dateHelper },
         { provide: SystemConfigService, useValue: systemConfigService },
-        { provide: ConfigService, useValue: configService },
       ],
     }).compile();
 
@@ -130,6 +128,7 @@ describe('AuthService', () => {
 
       expect(result).toHaveProperty('token');
       expect(result).toHaveProperty('refreshToken');
+      expect(jwtServiceMock.sign).toHaveBeenCalled();
       expect(usersRepo.update).toHaveBeenCalledWith('user-1', expect.objectContaining({ lastLogin: expect.any(Date) }));
     });
 
@@ -180,16 +179,19 @@ describe('AuthService', () => {
 
   describe('logout', () => {
     it('should invalidate refresh token and update lastLogout', async () => {
-      const token = jwt.sign(
-        { id: 'user-1', email: 'test@example.com', credential: 'testuser', theme: 'light' },
-        JWT_KEY,
-        { jwtid: 'jwt-id-1' },
-      );
+      jwtServiceMock.verify.mockReturnValue({
+        id: 'user-1',
+        email: 'test@example.com',
+        credential: 'testuser',
+        theme: 'light',
+        jti: 'jwt-id-1',
+      });
 
       refreshTokenRepo.findOne.mockResolvedValue(mockRefreshToken);
 
-      await service.logout(token, 'user-1');
+      await service.logout('some-jwt-token', 'user-1');
 
+      expect(jwtServiceMock.verify).toHaveBeenCalledWith('some-jwt-token', { ignoreExpiration: true });
       expect(refreshTokenRepo.update).toHaveBeenCalledWith('rt-1', { invalidated: true });
       expect(usersRepo.update).toHaveBeenCalledWith(
         'user-1',
@@ -198,53 +200,66 @@ describe('AuthService', () => {
     });
 
     it('should throw on invalid JWT', async () => {
+      jwtServiceMock.verify.mockImplementation(() => {
+        throw new Error('invalid token');
+      });
+
       await expect(service.logout('invalid.token.here', 'user-1')).rejects.toThrow(UnauthorizedException);
     });
   });
 
   describe('refreshToken', () => {
     it('should generate new tokens when keepLogin is true', async () => {
-      const token = jwt.sign(
-        { id: 'user-1', email: 'test@example.com', credential: 'testuser', theme: 'light' },
-        JWT_KEY,
-        { jwtid: 'jwt-id-1', expiresIn: 1800 },
-      );
+      jwtServiceMock.verify.mockReturnValue({
+        id: 'user-1',
+        email: 'test@example.com',
+        credential: 'testuser',
+        theme: 'light',
+        jti: 'jwt-id-1',
+        exp: Math.floor(Date.now() / 1000) + 1800,
+      });
 
       usersRepo.findOne.mockResolvedValue({ ...mockUser, keepLogin: true });
+      refreshTokenRepo.findOne.mockResolvedValue(mockRefreshToken);
 
-      const result = await service.refreshToken({ token, refreshToken: 'rt-1' });
+      const result = await service.refreshToken({ token: 'some-token', refreshToken: 'rt-1' });
 
       expect(result).toHaveProperty('token');
       expect(result).toHaveProperty('refreshToken');
     });
 
     it('should throw if refresh token is used', async () => {
-      // Create an expired token
-      const token = jwt.sign(
-        { id: 'user-1', email: 'test@example.com', credential: 'testuser', theme: 'light' },
-        JWT_KEY,
-        { jwtid: 'jwt-id-1', expiresIn: -10 },
-      );
+      jwtServiceMock.verify.mockReturnValue({
+        id: 'user-1',
+        email: 'test@example.com',
+        credential: 'testuser',
+        theme: 'light',
+        jti: 'jwt-id-1',
+        exp: Math.floor(Date.now() / 1000) - 10,
+      });
 
       usersRepo.findOne.mockResolvedValue(mockUser);
       refreshTokenRepo.findOne.mockResolvedValue({ ...mockRefreshToken, used: true });
 
-      await expect(service.refreshToken({ token, refreshToken: 'rt-1' })).rejects.toThrow(
+      await expect(service.refreshToken({ token: 'some-token', refreshToken: 'rt-1' })).rejects.toThrow(
         new BadRequestException(ErrorMessages.REFRESH_TOKEN_INVALID),
       );
     });
 
     it('should throw if refresh token is invalidated', async () => {
-      const token = jwt.sign(
-        { id: 'user-1', email: 'test@example.com', credential: 'testuser', theme: 'light' },
-        JWT_KEY,
-        { jwtid: 'jwt-id-1', expiresIn: -10 },
-      );
+      jwtServiceMock.verify.mockReturnValue({
+        id: 'user-1',
+        email: 'test@example.com',
+        credential: 'testuser',
+        theme: 'light',
+        jti: 'jwt-id-1',
+        exp: Math.floor(Date.now() / 1000) - 10,
+      });
 
       usersRepo.findOne.mockResolvedValue(mockUser);
       refreshTokenRepo.findOne.mockResolvedValue({ ...mockRefreshToken, invalidated: true });
 
-      await expect(service.refreshToken({ token, refreshToken: 'rt-1' })).rejects.toThrow(
+      await expect(service.refreshToken({ token: 'some-token', refreshToken: 'rt-1' })).rejects.toThrow(
         new BadRequestException(ErrorMessages.REFRESH_TOKEN_INVALID),
       );
     });
@@ -255,8 +270,8 @@ describe('AuthService', () => {
       rolesRepo.findOne.mockResolvedValue({ id: 'role-1', name: 'admin' });
       modulesRepo.findOne.mockResolvedValue({ id: '1', name: 'dashboard' });
       privilegesRepo.findOne.mockResolvedValue({
-        UserId: 'user-1',
-        ModuleId: 1,
+        userId: 'user-1',
+        moduleId: 1,
         role: { name: 'admin' },
       });
 
@@ -265,6 +280,7 @@ describe('AuthService', () => {
 
     it('should throw if role does not exist', async () => {
       rolesRepo.findOne.mockResolvedValue(null);
+      modulesRepo.findOne.mockResolvedValue({ id: '1', name: 'dashboard' });
 
       await expect(service.canAccessModule('user-1', { role: 'nonexistent', module: 'dashboard' })).rejects.toThrow(
         new BadRequestException(ErrorMessages.ROLE_NOT_FOUND),
@@ -284,8 +300,8 @@ describe('AuthService', () => {
       rolesRepo.findOne.mockResolvedValue({ id: 'role-1', name: 'admin' });
       modulesRepo.findOne.mockResolvedValue({ id: '1', name: 'dashboard' });
       privilegesRepo.findOne.mockResolvedValue({
-        UserId: 'user-1',
-        ModuleId: 1,
+        userId: 'user-1',
+        moduleId: 1,
         role: { name: 'user' },
       });
 

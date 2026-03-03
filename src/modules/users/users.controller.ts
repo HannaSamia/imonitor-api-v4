@@ -16,6 +16,8 @@ import { CurrentUser } from '../../auth/decorators/current-user.decorator';
 import { JwtPayload } from '../../auth/interfaces/jwt-payload.interface';
 import { PrivilegeGuard } from '../../auth/guards/privilege.guard';
 import { UsersService } from './users.service';
+import { UserPrivilegesService } from './user-privileges.service';
+import { UserPasswordService } from './user-password.service';
 import {
   CreateUserDto,
   UpdateUserDto,
@@ -31,10 +33,15 @@ import {
 @UseGuards(PrivilegeGuard)
 @Controller('api/v1/users')
 export class UsersController {
-  constructor(private readonly usersService: UsersService) {}
+  constructor(
+    private readonly usersService: UsersService,
+    private readonly userPrivilegesService: UserPrivilegesService,
+    private readonly userPasswordService: UserPasswordService,
+  ) {}
 
   // ─── CRUD Endpoints ──────────────────────────────────────────────────
 
+  /** Returns 200 instead of 201 for v3 frontend parity. */
   @Post('register')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Register a new user' })
@@ -71,31 +78,17 @@ export class UsersController {
     return { result };
   }
 
-  @Get('settings')
-  @ApiOperation({ summary: 'List system configurations' })
-  async systemSettings() {
-    const result = await this.usersService.listSystemConfigurations();
-    return { result };
-  }
-
-  @Get('settings/:name')
-  @ApiOperation({ summary: 'Get module settings by name' })
-  async getModuleSettings(@Param('name') name: string) {
-    const result = await this.usersService.moduleSettings(name);
-    return { result };
-  }
-
   @Get('sidemenu')
   @ApiOperation({ summary: 'Get side menu for current user' })
   async sideMenu(@CurrentUser() user: JwtPayload) {
-    const result = await this.usersService.getSideMenu(user.id, user.theme);
+    const result = await this.userPrivilegesService.getSideMenu(user.id, user.theme);
     return { result };
   }
 
   @Get('module/:name/role')
   @ApiOperation({ summary: 'Get user role on a specific module' })
   async moduleRole(@CurrentUser('id') userId: string, @Param('name') name: string) {
-    const result = await this.usersService.getUserRoleOnModule(userId, name);
+    const result = await this.userPrivilegesService.getUserRoleOnModule(userId, name);
     return { result };
   }
 
@@ -136,7 +129,7 @@ export class UsersController {
   @Put(':id/privileges')
   @ApiOperation({ summary: 'Update user privileges' })
   async updatePrivileges(@Param('id') id: string, @Body() body: UserPrivilegesDto[]) {
-    await this.usersService.updateUserPrivileges(id, body);
+    await this.userPrivilegesService.updateUserPrivileges(id, body);
     return { result: null };
   }
 
@@ -159,14 +152,14 @@ export class UsersController {
   @Patch('resetpassword')
   @ApiOperation({ summary: 'Change own password' })
   async changePassword(@CurrentUser('id') userId: string, @Body() body: ChangePasswordDto) {
-    await this.usersService.changePassword(userId, body);
+    await this.userPasswordService.changePassword(userId, body);
     return { result: null };
   }
 
   @Patch('changepassword/:id')
   @ApiOperation({ summary: 'Admin reset another user password' })
   async resetPassword(@Param('id') id: string, @CurrentUser('id') currentUserId: string) {
-    await this.usersService.resetPassword(currentUserId, id);
+    await this.userPasswordService.resetPassword(currentUserId, id);
     return { result: null };
   }
 
@@ -184,7 +177,7 @@ export class UsersController {
   @Get(':id/privileges')
   @ApiOperation({ summary: 'Get user privileges tree' })
   async getUserPrivileges(@Param('id') id: string) {
-    const result = await this.usersService.getUserPrivileges(id);
+    const result = await this.userPrivilegesService.getUserPrivileges(id);
     return { result };
   }
 }

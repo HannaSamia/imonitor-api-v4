@@ -1,20 +1,21 @@
-import { Entity, PrimaryColumn, Column, ManyToOne, JoinColumn } from 'typeorm';
+import { Entity, PrimaryColumn, Column, Index, ManyToOne, JoinColumn } from 'typeorm';
 import { CoreApplicationUsers } from './core-application-users.entity';
 import { CoreApplicationRoles } from './core-application-roles.entity';
 
 @Entity('core_privileges')
+@Index('IDX_privileges_userId_moduleId', ['userId', 'moduleId'])
 export class CorePrivileges {
-  @PrimaryColumn({ type: 'varchar', length: 255 })
-  Id: string;
+  @PrimaryColumn({ name: 'Id', type: 'varchar', length: 255 })
+  id: string;
 
-  @Column({ type: 'varchar', length: 255, nullable: true, default: null })
-  UserId: string | null;
+  @Column({ name: 'UserId', type: 'varchar', length: 255, nullable: true, default: null })
+  userId: string | null;
 
-  @Column({ type: 'varchar', length: 255, nullable: true, default: null })
-  RoleId: string | null;
+  @Column({ name: 'RoleId', type: 'varchar', length: 255, nullable: true, default: null })
+  roleId: string | null;
 
-  @Column({ type: 'int', nullable: false })
-  ModuleId: number;
+  @Column({ name: 'ModuleId', type: 'int', nullable: false })
+  moduleId: number;
 
   @ManyToOne(() => CoreApplicationUsers, (user) => user.privileges)
   @JoinColumn({ name: 'UserId' })

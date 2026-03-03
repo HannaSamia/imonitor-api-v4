@@ -1,5 +1,5 @@
-import { IsNotEmpty, IsString, IsBoolean, IsEmail, IsOptional, MinLength, Matches } from 'class-validator';
-import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import { IsNotEmpty, IsString, IsBoolean, IsEmail, MinLength, Matches } from 'class-validator';
+import { ApiProperty } from '@nestjs/swagger';
 
 export class UpdateUserDto {
   @ApiProperty({ description: 'User ID (must match URL param)' })
@@ -62,14 +62,4 @@ export class EditSelfDto {
   @IsString()
   @IsNotEmpty()
   phoneNumber: string;
-
-  @ApiPropertyOptional({ description: 'Keep login (bypass JWT expiry)' })
-  @IsOptional()
-  @IsBoolean()
-  keepLogin?: boolean;
-
-  @ApiPropertyOptional({ description: 'Allow multiple concurrent sessions' })
-  @IsOptional()
-  @IsBoolean()
-  allowMultipleSessions?: boolean;
 }

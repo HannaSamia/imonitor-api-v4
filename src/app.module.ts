@@ -11,8 +11,9 @@ import { RedisModule } from './redis/redis.module';
 import { LoggerModule } from './logger/logger.module';
 import { AuthModule } from './auth/auth.module';
 import { SharedModule } from './shared/shared.module';
+import { CoreDataModule } from './database/core-data.module';
 import { HealthModule } from './health/health.module';
-import { AuthEndpointsModule } from './modules/auth/auth.module';
+import { AuthEndpointsModule } from './modules/auth/auth-endpoints.module';
 import { UsersModule } from './modules/users/users.module';
 import { CorrelationIdMiddleware } from './logger/correlation-id.middleware';
 import { RequestFilterMiddleware } from './shared/middleware/request-filter.middleware';
@@ -33,6 +34,7 @@ import { GlobalExceptionFilter } from './shared/filters/global-exception.filter'
     }),
     EventEmitterModule.forRoot({ maxListeners: 50 }),
     DatabaseModule,
+    CoreDataModule,
     LegacyDataDbModule,
     LegacyEtlDbModule,
     LegacyPrestoModule,

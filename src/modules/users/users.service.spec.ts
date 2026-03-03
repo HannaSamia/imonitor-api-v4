@@ -1,15 +1,11 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { getRepositoryToken } from '@nestjs/typeorm';
 import { BadRequestException } from '@nestjs/common';
-import { EventEmitter2 } from '@nestjs/event-emitter';
 import { UsersService } from './users.service';
+import { UserPrivilegesService } from './user-privileges.service';
 import { CoreApplicationUsers, UserTheme } from '../../database/entities/core-application-users.entity';
-import { CoreApplicationRoles } from '../../database/entities/core-application-roles.entity';
-import { CorePrivileges } from '../../database/entities/core-privileges.entity';
-import { CoreModules } from '../../database/entities/core-modules.entity';
 import { PasswordService } from '../../shared/services/password.service';
 import { DateHelperService } from '../../shared/services/date-helper.service';
-import { SystemConfigService } from '../../shared/services/system-config.service';
 import { ErrorMessages } from '../../shared/constants';
 
 function createMockQueryBuilder(result: any) {
@@ -28,13 +24,9 @@ function createMockQueryBuilder(result: any) {
 describe('UsersService', () => {
   let service: UsersService;
   let usersRepo: any;
-  let rolesRepo: any;
-  let privilegesRepo: any;
-  let modulesRepo: any;
   let passwordService: any;
   let dateHelper: any;
-  let systemConfigService: any;
-  let eventEmitter: any;
+  let userPrivilegesService: any;
 
   beforeEach(async () => {
     usersRepo = {
@@ -44,19 +36,15 @@ describe('UsersService', () => {
       create: jest.fn().mockImplementation((data) => data),
       save: jest.fn().mockResolvedValue({}),
       update: jest.fn().mockResolvedValue({}),
-    };
-    rolesRepo = {
-      findOne: jest.fn(),
-    };
-    privilegesRepo = {
-      findOne: jest.fn(),
-      create: jest.fn().mockImplementation((data) => data),
-      save: jest.fn().mockResolvedValue({}),
-      update: jest.fn().mockResolvedValue({}),
-    };
-    modulesRepo = {
-      find: jest.fn(),
-      findOne: jest.fn(),
+      manager: {
+        transaction: jest.fn().mockImplementation(async (cb) => {
+          const mockManager = {
+            create: jest.fn().mockImplementation((_entity, data) => data),
+            save: jest.fn().mockResolvedValue({}),
+          };
+          return cb(mockManager);
+        }),
+      },
     };
     passwordService = {
       hashPassword: jest.fn().mockResolvedValue('$2b$10$hashed'),
@@ -65,26 +53,21 @@ describe('UsersService', () => {
     dateHelper = {
       currentDate: jest.fn().mockReturnValue(new Date('2026-03-02T12:00:00Z')),
     };
-    systemConfigService = {
-      getConfigValue: jest.fn(),
-      getConfigValues: jest.fn(),
-      getSettingsByColumn: jest.fn(),
-    };
-    eventEmitter = {
-      emit: jest.fn(),
+    userPrivilegesService = {
+      assignDefaultPrivileges: jest.fn().mockResolvedValue(undefined),
+      getUserPrivileges: jest.fn(),
+      updateUserPrivileges: jest.fn(),
+      getSideMenu: jest.fn(),
+      getUserRoleOnModule: jest.fn(),
     };
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         UsersService,
         { provide: getRepositoryToken(CoreApplicationUsers), useValue: usersRepo },
-        { provide: getRepositoryToken(CoreApplicationRoles), useValue: rolesRepo },
-        { provide: getRepositoryToken(CorePrivileges), useValue: privilegesRepo },
-        { provide: getRepositoryToken(CoreModules), useValue: modulesRepo },
         { provide: PasswordService, useValue: passwordService },
         { provide: DateHelperService, useValue: dateHelper },
-        { provide: SystemConfigService, useValue: systemConfigService },
-        { provide: EventEmitter2, useValue: eventEmitter },
+        { provide: UserPrivilegesService, useValue: userPrivilegesService },
       ],
     }).compile();
 
@@ -106,19 +89,14 @@ describe('UsersService', () => {
     it('should register a new user successfully', async () => {
       const qb = createMockQueryBuilder(null);
       usersRepo.createQueryBuilder.mockReturnValue(qb);
-      rolesRepo.findOne.mockResolvedValue({ id: 'role-na', name: 'N/A' });
-      modulesRepo.find.mockResolvedValue([
-        { id: '1', name: 'module1' },
-        { id: '2', name: 'module2' },
-      ]);
 
       const result = await service.register(createUserDto, 'admin-1');
 
       expect(result).toHaveProperty('id');
       expect(result.firstName).toBe('John');
       expect(result.email).toBe('john@example.com');
-      expect(usersRepo.save).toHaveBeenCalled();
-      expect(privilegesRepo.save).toHaveBeenCalled();
+      expect(usersRepo.manager.transaction).toHaveBeenCalled();
+      expect(userPrivilegesService.assignDefaultPrivileges).toHaveBeenCalled();
     });
 
     it('should throw if user already exists', async () => {
@@ -204,50 +182,6 @@ describe('UsersService', () => {
     });
   });
 
-  describe('changePassword', () => {
-    it('should change password with valid inputs', async () => {
-      usersRepo.findOne.mockResolvedValue({
-        id: 'user-1',
-        passwordHash: '$2b$10$oldhash',
-      });
-      passwordService.isPasswordValid.mockResolvedValue(true);
-
-      await service.changePassword('user-1', {
-        password: 'newpass123',
-        confirmPassword: 'newpass123',
-        oldPassword: 'oldpass123',
-      });
-
-      expect(usersRepo.update).toHaveBeenCalledWith('user-1', { passwordHash: '$2b$10$hashed' });
-    });
-
-    it('should throw if passwords do not match', async () => {
-      await expect(
-        service.changePassword('user-1', {
-          password: 'newpass123',
-          confirmPassword: 'differentpass',
-          oldPassword: 'oldpass123',
-        }),
-      ).rejects.toThrow(new BadRequestException(ErrorMessages.PASSWORD_MISMATCH));
-    });
-
-    it('should throw if old password is wrong', async () => {
-      usersRepo.findOne.mockResolvedValue({
-        id: 'user-1',
-        passwordHash: '$2b$10$oldhash',
-      });
-      passwordService.isPasswordValid.mockResolvedValue(false);
-
-      await expect(
-        service.changePassword('user-1', {
-          password: 'newpass123',
-          confirmPassword: 'newpass123',
-          oldPassword: 'wrongold',
-        }),
-      ).rejects.toThrow(new BadRequestException(ErrorMessages.WRONG_PASSWORD));
-    });
-  });
-
   describe('delete', () => {
     it('should soft delete user with audit trail', async () => {
       await service.delete('admin-1', 'user-1');
@@ -289,36 +223,6 @@ describe('UsersService', () => {
       await service.themeUpdate('user-1', UserTheme.DARK);
 
       expect(usersRepo.update).toHaveBeenCalledWith('user-1', { theme: UserTheme.DARK });
-    });
-  });
-
-  describe('resetPassword', () => {
-    it('should reset password and emit event', async () => {
-      usersRepo.findOne.mockResolvedValue({
-        id: 'user-1',
-        firstName: 'John',
-        lastName: 'Doe',
-        email: 'john@example.com',
-      });
-
-      await service.resetPassword('admin-1', 'user-1');
-
-      expect(usersRepo.update).toHaveBeenCalledWith('user-1', { passwordHash: '$2b$10$hashed' });
-      expect(eventEmitter.emit).toHaveBeenCalledWith(
-        'user.password.reset',
-        expect.objectContaining({
-          userId: 'user-1',
-          email: 'john@example.com',
-        }),
-      );
-    });
-
-    it('should throw if target user not found', async () => {
-      usersRepo.findOne.mockResolvedValue(null);
-
-      await expect(service.resetPassword('admin-1', 'nonexistent')).rejects.toThrow(
-        new BadRequestException(ErrorMessages.USER_NOT_FOUND),
-      );
     });
   });
 });

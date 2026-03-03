@@ -1,8 +1,7 @@
 import { Injectable, BadRequestException, UnauthorizedException, Logger } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
+import { JwtService } from '@nestjs/jwt';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import * as jwt from 'jsonwebtoken';
 import { v4 as uuidv4 } from 'uuid';
 import { CoreApplicationUsers } from '../../database/entities/core-application-users.entity';
 import { CoreApplicationRoles } from '../../database/entities/core-application-roles.entity';
@@ -38,10 +37,10 @@ export class AuthService {
     private readonly privilegesRepo: Repository<CorePrivileges>,
     @InjectRepository(CoreModules)
     private readonly modulesRepo: Repository<CoreModules>,
+    private readonly jwtService: JwtService,
     private readonly passwordService: PasswordService,
     private readonly dateHelper: DateHelperService,
     private readonly systemConfigService: SystemConfigService,
-    private readonly configService: ConfigService,
   ) {}
 
   // ─── Login ───────────────────────────────────────────────────────────
@@ -107,10 +106,9 @@ export class AuthService {
 
   async logout(token: string, userId: string): Promise<void> {
     // Validate token (ignore expiration for logout)
-    const jwtKey = this.getJwtKey();
     let decoded: JwtPayload;
     try {
-      decoded = jwt.verify(token, jwtKey, { ignoreExpiration: true }) as JwtPayload;
+      decoded = this.jwtService.verify<JwtPayload>(token, { ignoreExpiration: true });
     } catch {
       throw new UnauthorizedException(ErrorMessages.JWT_IS_NOT_VALID);
     }
@@ -138,12 +136,11 @@ export class AuthService {
 
   async refreshToken(body: RefreshTokenDto): Promise<AuthenticationResult> {
     const { token, refreshToken: refreshTokenId } = body;
-    const jwtKey = this.getJwtKey();
 
-    // Decode token (ignore expiration)
+    // Verify JWT signature (ignore expiration — this is a refresh flow)
     let decoded: JwtPayload;
     try {
-      decoded = jwt.verify(token, jwtKey, { ignoreExpiration: true }) as JwtPayload;
+      decoded = this.jwtService.verify<JwtPayload>(token, { ignoreExpiration: true });
     } catch {
       throw new BadRequestException(ErrorMessages.REFRESH_TOKEN_INVALID);
     }
@@ -158,30 +155,14 @@ export class AuthService {
       select: ['id', 'email', 'userName', 'allowMultipleSessions', 'theme', 'keepLogin'],
     });
 
-    if (!user) {
+    if (!user || !user.email || !user.userName) {
       throw new BadRequestException(ErrorMessages.INVALID_CREDENTIALS);
     }
 
-    if (!user.email || !user.userName) {
-      throw new BadRequestException(ErrorMessages.INVALID_CREDENTIALS);
-    }
-
-    // If keepLogin, generate new pair immediately
-    if (user.keepLogin) {
-      return this.generateTokenAndRefreshToken(user.id, user.email, user.userName, user.theme ?? 'light');
-    }
-
-    // Check token has expired or is about to expire (within 1 minute)
-    if (decoded.exp) {
-      const now = Math.floor(Date.now() / 1000);
-      const gracePeriod = decoded.exp - 60; // 1 minute before expiry
-      if (now < gracePeriod) {
-        throw new BadRequestException(ErrorMessages.TOKEN_HAS_NOT_EXPIRED_YET);
-      }
-    }
-
-    // Fetch refresh token
-    const storedRefreshToken = await this.refreshTokenRepo.findOne({ where: { id: refreshTokenId } });
+    // ALWAYS validate the refresh token (H-02 fix)
+    const storedRefreshToken = await this.refreshTokenRepo.findOne({
+      where: { id: refreshTokenId },
+    });
     if (!storedRefreshToken) {
       throw new BadRequestException(ErrorMessages.REFRESH_TOKEN_INVALID);
     }
@@ -201,6 +182,18 @@ export class AuthService {
       throw new BadRequestException(ErrorMessages.REFRESH_TOKEN_INVALID);
     }
 
+    // keepLogin users bypass the "token hasn't expired yet" check
+    // Non-keepLogin users must wait until token is near expiry
+    if (!user.keepLogin) {
+      if (decoded.exp) {
+        const now = Math.floor(Date.now() / 1000);
+        const gracePeriod = decoded.exp - 60; // 1 minute before expiry
+        if (now < gracePeriod) {
+          throw new BadRequestException(ErrorMessages.TOKEN_HAS_NOT_EXPIRED_YET);
+        }
+      }
+    }
+
     // Mark old refresh token as used
     await this.refreshTokenRepo.update(storedRefreshToken.id, { used: true });
 
@@ -213,21 +206,22 @@ export class AuthService {
   async canAccessModule(userId: string, body: CanAccessModuleDto): Promise<void> {
     const { role, module } = body;
 
-    // Validate role exists
-    const roleExists = await this.rolesRepo.findOne({ where: { name: role } });
+    // Parallel: role + module lookups are independent (M-09 fix)
+    const [roleExists, moduleExists] = await Promise.all([
+      this.rolesRepo.findOne({ where: { name: role } }),
+      this.modulesRepo.findOne({ where: { name: module } }),
+    ]);
+
     if (!roleExists) {
       throw new BadRequestException(ErrorMessages.ROLE_NOT_FOUND);
     }
-
-    // Validate module exists
-    const moduleExists = await this.modulesRepo.findOne({ where: { name: module } });
     if (!moduleExists) {
       throw new BadRequestException(ErrorMessages.MODULE_NOT_FOUND);
     }
 
     // Get user's role on this module
     const privilege = await this.privilegesRepo.findOne({
-      where: { UserId: userId, ModuleId: parseInt(moduleExists.id, 10) },
+      where: { userId, moduleId: parseInt(moduleExists.id, 10) },
       relations: ['role'],
     });
 
@@ -245,7 +239,6 @@ export class AuthService {
     userName: string,
     theme: string,
   ): Promise<AuthenticationResult> {
-    const jwtKey = this.getJwtKey();
     const jwtId = uuidv4();
 
     // Get expiry from system config (in minutes → convert to seconds for jwt.sign)
@@ -259,7 +252,7 @@ export class AuthService {
       theme,
     };
 
-    const token = jwt.sign(payload, jwtKey, {
+    const token = this.jwtService.sign(payload, {
       expiresIn: expiresInSeconds,
       subject: userId,
       jwtid: jwtId,
@@ -285,16 +278,5 @@ export class AuthService {
     await this.refreshTokenRepo.save(refreshTokenEntity);
 
     return { token, refreshToken: refreshTokenId };
-  }
-
-  // ─── Helpers ─────────────────────────────────────────────────────────
-
-  private getJwtKey(): string {
-    const key = this.configService.get<string>('JWT_KEY');
-    if (!key) {
-      this.logger.error('JWT_KEY not configured');
-      throw new UnauthorizedException(ErrorMessages.JWT_IS_NOT_VALID);
-    }
-    return key;
   }
 }
