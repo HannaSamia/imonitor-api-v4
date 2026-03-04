@@ -59,19 +59,19 @@ Implement the QueryBuilderService (dynamic SQL generation) and 9 chart generatio
 
 ### Tasks
 
-- [ ] Task 3.1: Create `QueryBuilderService` — translate report config (tables, filters, timeFilter, orderBy, limit, operation, compare) into parameterized SQL queries against iMonitorData
-- [ ] Task 3.2: Implement `executeQuery()` (tabular endpoint) — use QueryBuilderService + LegacyDataDbService to run query, return headers + body
-- [ ] Task 3.3: Implement `generatedQuery()` — return the SQL string without executing
-- [ ] Task 3.4: Port chart generation functions — `generatePie`, `generateDoughnut`, `generateTrend`, `generateVerticalBar`, `generateHorizontalBar`, `generateProgress`, `generateExplodedProgress` into `src/modules/reports/charts/` as injectable services or pure functions
-- [ ] Task 3.5: Implement chart endpoints (pie, doughnut, trend, verticalBar, horizontalBar, progress, explodedProgress) — each calls executeQuery + chart generator, saves chart to CoreReportCharts
-- [ ] Task 3.6: Implement `generateChartByType()` — dynamic chart generation dispatching to the correct generator by ChartType enum
-- [ ] Task 3.7: Wire all chart endpoints in controller with Swagger decorators
+- [x] Task 3.1: Create `QueryBuilderService` — translate report config (tables, filters, timeFilter, orderBy, limit, operation, compare) into parameterized SQL queries against iMonitorData
+- [x] Task 3.2: Implement `executeQuery()` (tabular endpoint) — use QueryBuilderService + LegacyDataDbService to run query, return headers + body
+- [x] Task 3.3: Implement `generatedQuery()` — return the SQL string without executing
+- [x] Task 3.4: Port chart generation functions — `generatePie`, `generateDoughnut`, `generateTrend`, `generateVerticalBar`, `generateHorizontalBar`, `generateProgress`, `generateExplodedProgress` into `src/modules/reports/charts/` as injectable services or pure functions
+- [x] Task 3.5: Implement chart endpoints (pie, doughnut, trend, verticalBar, horizontalBar, progress, explodedProgress) — each calls buildChartGenerateResult + chart generator
+- [x] Task 3.6: Implement `generateChartByType()` — dynamic chart generation dispatching to the correct generator by ChartType enum
+- [x] Task 3.7: Wire all chart endpoints in controller with Swagger decorators + GenerateChartDto
 
 ### Verification
 
-- [ ] `npm run build` passes
-- [ ] All 10 chart/query endpoints visible in Swagger
-- [ ] QueryBuilderService generates SQL matching v3 patterns (// SDQ: requires manual verification)
+- [x] `npm run build` passes
+- [x] All 10 chart/query endpoints visible in Swagger
+- [x] QueryBuilderService generates SQL matching v3 patterns (// SDQ: requires manual verification)
 
 ## Phase 4: Export Endpoints
 
@@ -79,17 +79,17 @@ Implement the 11 export endpoints (7 full-report + 4 per-tab).
 
 ### Tasks
 
-- [ ] Task 4.1: Extend `ExportHelperService` or create `ReportExportService` with methods: `exportCSV`, `exportJSON`, `exportHTML`, `exportPDF`, `exportPNG`, `exportJPEG`
-- [ ] Task 4.2: Port HTML template rendering — report HTML generation with embedded chart data (from v3 `exportHtmlFunctions`)
-- [ ] Task 4.3: Implement puppeteer-based conversion service — HTML → PDF, HTML → PNG, HTML → JPEG
-- [ ] Task 4.4: Implement full-report export endpoints: CSV, JSON, HTML, PDF, PNG, JPEG, Excel
-- [ ] Task 4.5: Implement per-tab export endpoints: HTML, PDF, PNG, JPEG (single chart/tab)
-- [ ] Task 4.6: Wire all 11 export endpoints in controller with Swagger decorators and route params (`:reportId/:status/:fromdate/:todate/:interval`)
+- [x] Task 4.1: Extend `ExportHelperService` or create `ReportExportService` with methods: `exportCSV`, `exportJSON`, `exportHTML`, `exportPDF`, `exportPNG`, `exportJPEG`
+- [x] Task 4.2: Port HTML template rendering — report HTML generation with embedded chart data (from v3 `exportHtmlFunctions`)
+- [x] Task 4.3: Implement puppeteer-based conversion service — HTML → PDF, HTML → PNG, HTML → JPEG
+- [x] Task 4.4: Implement full-report export endpoints: CSV, JSON, HTML, PDF, PNG, JPEG, Excel
+- [x] Task 4.5: Implement per-tab export endpoints: HTML, PDF, PNG, JPEG (single chart/tab)
+- [x] Task 4.6: Wire all 11 export endpoints in controller with Swagger decorators and route params (`:reportId/:status/:fromdate/:todate/:interval`)
 
 ### Verification
 
-- [ ] `npm run build` passes
-- [ ] All 11 export endpoints visible in Swagger
+- [x] `npm run build` passes
+- [x] All 11 export endpoints visible in Swagger
 - [ ] Export file generation works (// SDQ: requires manual verification with live data)
 
 ## Phase 5: Unit Tests & Cleanup
