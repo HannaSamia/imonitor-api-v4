@@ -5,11 +5,15 @@ import {
   humanReadableLargeNumber,
   emptyReportChartByType,
   barLabelChanger,
+  kpiCalculator,
+  hotkeyTransform,
+  isUndefinedOrNull,
   IBarSerie,
 } from './chart-helpers';
 import { ChartTypes, BarLabelValues } from '../enums';
-import { IChartData } from '../dto/report-interfaces';
-import { FieldFunctions } from '../services/query-builder.service';
+import { IChartData, IFieldsArrayEntry } from '../dto/report-interfaces';
+import { CustomColumnType, FieldFunctions } from '../services/query-builder.service';
+import { BadRequestException } from '@nestjs/common';
 
 // ─── deepCopy ────────────────────────────────────────────────────────────────
 
@@ -196,5 +200,262 @@ describe('barLabelChanger', () => {
     barLabelChanger(BarLabelValues.SERIE_VALUE, series, true, '#fff');
 
     expect(series[0].label).toEqual(expect.objectContaining({ show: true, formatter: '{b}\n({c})' }));
+  });
+});
+
+// ─── isUndefinedOrNull ──────────────────────────────────────────────────────
+
+describe('isUndefinedOrNull', () => {
+  it('should return true for null', () => {
+    expect(isUndefinedOrNull(null)).toBe(true);
+  });
+
+  it('should return true for undefined', () => {
+    expect(isUndefinedOrNull(undefined)).toBe(true);
+  });
+
+  it('should return false for zero', () => {
+    expect(isUndefinedOrNull(0)).toBe(false);
+  });
+
+  it('should return false for empty string', () => {
+    expect(isUndefinedOrNull('')).toBe(false);
+  });
+
+  it('should return false for false', () => {
+    expect(isUndefinedOrNull(false)).toBe(false);
+  });
+
+  it('should return false for objects', () => {
+    expect(isUndefinedOrNull({})).toBe(false);
+  });
+});
+
+// ─── kpiCalculator ──────────────────────────────────────────────────────────
+
+describe('kpiCalculator', () => {
+  const makeField = (overrides: Partial<IFieldsArrayEntry> = {}): IFieldsArrayEntry => ({
+    type: 'number',
+    draggedId: 'field-1',
+    isCustomColumn: false,
+    columnDisplayName: 'col1',
+    ...overrides,
+  });
+
+  it('should return fallback when field is not found in fieldsArray', () => {
+    const result = kpiCalculator(1, [], [], 'unknown-id', 'chartT', 'AS alias');
+    expect(result).toBe('chartT.`unknown-id` AS alias');
+  });
+
+  it('should wrap regular numeric field with its operation', () => {
+    const fields: IFieldsArrayEntry[] = [makeField({ operation: 'sum' })];
+    const result = kpiCalculator(1, fields, [], 'field-1', 'chartT', 'AS col');
+    expect(result).toBe('sum(chartT.`col1`) AS col');
+  });
+
+  it('should return field without operation when withOperation is false', () => {
+    const fields: IFieldsArrayEntry[] = [makeField({ operation: 'sum' })];
+    const result = kpiCalculator(1, fields, [], 'field-1', 'chartT', 'AS col', false);
+    expect(result).toBe('chartT.`col1` AS col');
+  });
+
+  it('should handle OPERATION custom column by replacing table aliases', () => {
+    const fields: IFieldsArrayEntry[] = [
+      makeField({
+        isCustomColumn: true,
+        customColumnType: CustomColumnType.OPERATION,
+        builtString: 't0.`a` + t1.`b`',
+      }),
+    ];
+    const result = kpiCalculator(2, fields, [], 'field-1', 'chartT', 'AS res');
+    expect(result).toBe('chartT.`a` + chartT.`b` AS res');
+  });
+
+  it('should replace CASE custom column builtStrings inside OPERATION column', () => {
+    const caseField = makeField({
+      draggedId: 'case-1',
+      isCustomColumn: true,
+      customColumnType: CustomColumnType.CASE,
+      builtString: 'CASE WHEN x THEN 1 END',
+      columnDisplayName: 'caseCol',
+    });
+    const opField = makeField({
+      draggedId: 'op-1',
+      isCustomColumn: true,
+      customColumnType: CustomColumnType.OPERATION,
+      builtString: 'CASE WHEN x THEN 1 END + 10',
+    });
+    const fields = [caseField, opField];
+    const result = kpiCalculator(1, fields, [], 'op-1', 'chartT', 'AS res');
+    expect(result).toBe('sum(chartT.`caseCol`) + 10 AS res');
+  });
+
+  it('should replace COMPARE custom column builtStrings inside OPERATION column', () => {
+    const compareField = makeField({
+      draggedId: 'cmp-1',
+      isCustomColumn: true,
+      customColumnType: CustomColumnType.COMPARE,
+      builtString: 'sum(t0.`val`)',
+      operation: 'avg',
+      columnDisplayName: 'cmpCol',
+    });
+    const opField = makeField({
+      draggedId: 'op-1',
+      isCustomColumn: true,
+      customColumnType: CustomColumnType.OPERATION,
+      builtString: 'sum(t0.`val`) * 2',
+    });
+    const fields = [compareField, opField];
+    const result = kpiCalculator(1, fields, [], 'op-1', 'chartT', 'AS res');
+    expect(result).toBe('avg(chartT.`cmpCol`) * 2 AS res');
+  });
+
+  it('should replace refTable alias in OPERATION columns', () => {
+    const fields: IFieldsArrayEntry[] = [
+      makeField({
+        isCustomColumn: true,
+        customColumnType: CustomColumnType.OPERATION,
+        builtString: 'refTable.`x` + refTable.`y`',
+      }),
+    ];
+    const result = kpiCalculator(0, fields, [], 'field-1', 'chartT', 'AS res');
+    expect(result).toBe('chartT.`x` + chartT.`y` AS res');
+  });
+
+  it('should apply truncate when configured on operation column', () => {
+    const fields: IFieldsArrayEntry[] = [
+      makeField({
+        isCustomColumn: true,
+        customColumnType: CustomColumnType.OPERATION,
+        builtString: 't0.`a`',
+      }),
+    ];
+    const operationColumns = [
+      {
+        draggedId: 'field-1',
+        trunc: true,
+        trValue: 2,
+      },
+    ];
+    const result = kpiCalculator(1, fields, operationColumns as any, 'field-1', 'chartT', 'AS res');
+    expect(result).toContain('truncate(');
+  });
+
+  it('should apply round when configured on operation column', () => {
+    const fields: IFieldsArrayEntry[] = [
+      makeField({
+        isCustomColumn: true,
+        customColumnType: CustomColumnType.OPERATION,
+        builtString: 't0.`a`',
+      }),
+    ];
+    const operationColumns = [
+      {
+        draggedId: 'field-1',
+        round: true,
+        trValue: 3,
+      },
+    ];
+    const result = kpiCalculator(1, fields, operationColumns as any, 'field-1', 'chartT', 'AS res');
+    expect(result).toContain('round(');
+  });
+});
+
+// ─── hotkeyTransform ────────────────────────────────────────────────────────
+
+describe('hotkeyTransform', () => {
+  const mockLegacyDataDb = {
+    query: jest.fn(),
+  };
+
+  const mockDateHelper = {
+    formatDate: jest.fn(),
+    parseISO: jest.fn((d: string) => new Date(d)),
+    subtractDurationFromDate: jest.fn(() => new Date('2026-01-01')),
+  };
+
+  const coreDbName = '`iMonitorV3_1`';
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+  });
+
+  it('should return undefined when input string is undefined', async () => {
+    const result = await hotkeyTransform(undefined, {}, mockLegacyDataDb as any, mockDateHelper as any, coreDbName);
+    expect(result).toBeUndefined();
+  });
+
+  it('should return empty string when input is empty string', async () => {
+    mockLegacyDataDb.query.mockResolvedValue([]);
+    const result = await hotkeyTransform('', {}, mockLegacyDataDb as any, mockDateHelper as any, coreDbName);
+    expect(result).toBe('');
+  });
+
+  it('should replace object.fromDate hotkey with date value', async () => {
+    mockLegacyDataDb.query.mockResolvedValue([{ confKey: '{{startDate}}', confVal: 'object.fromDate' }]);
+    mockDateHelper.formatDate.mockReturnValue('2026-01-01');
+
+    const result = await hotkeyTransform(
+      'From {{startDate}} to end',
+      { fromDate: '2026-01-01' },
+      mockLegacyDataDb as any,
+      mockDateHelper as any,
+      coreDbName,
+    );
+
+    expect(result).toBe('From 2026-01-01 to end');
+  });
+
+  it('should replace moment hotkey with current date', async () => {
+    mockLegacyDataDb.query.mockResolvedValue([{ confKey: '{{now}}', confVal: 'moment' }]);
+    mockDateHelper.formatDate.mockReturnValue('2026-03-04 12:00:59');
+
+    const result = await hotkeyTransform(
+      'As of {{now}}',
+      {},
+      mockLegacyDataDb as any,
+      mockDateHelper as any,
+      coreDbName,
+    );
+
+    expect(result).toBe('As of 2026-03-04 12:00:59');
+  });
+
+  it('should replace moment-1 hotkey with yesterday date', async () => {
+    mockLegacyDataDb.query.mockResolvedValue([{ confKey: '{{yesterday}}', confVal: 'moment-1' }]);
+    mockDateHelper.formatDate.mockReturnValue('2026-03-03 23:59:59');
+
+    const result = await hotkeyTransform(
+      'Yesterday: {{yesterday}}',
+      {},
+      mockLegacyDataDb as any,
+      mockDateHelper as any,
+      coreDbName,
+    );
+
+    expect(result).toBe('Yesterday: 2026-03-03 23:59:59');
+    expect(mockDateHelper.subtractDurationFromDate).toHaveBeenCalledWith({ days: 1 });
+  });
+
+  it('should not replace hotkey when date value is null', async () => {
+    mockLegacyDataDb.query.mockResolvedValue([{ confKey: '{{startDate}}', confVal: 'object.fromDate' }]);
+
+    const result = await hotkeyTransform(
+      'From {{startDate}}',
+      { fromDate: null },
+      mockLegacyDataDb as any,
+      mockDateHelper as any,
+      coreDbName,
+    );
+
+    expect(result).toBe('From {{startDate}}');
+  });
+
+  it('should throw BadRequestException when DB query fails', async () => {
+    mockLegacyDataDb.query.mockRejectedValue(new Error('DB error'));
+
+    await expect(
+      hotkeyTransform('test', {}, mockLegacyDataDb as any, mockDateHelper as any, coreDbName),
+    ).rejects.toThrow(BadRequestException);
   });
 });

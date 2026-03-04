@@ -43,6 +43,8 @@ const mockQueryRunner = {
   manager: {
     findOne: jest.fn(),
     insert: jest.fn().mockResolvedValue({}),
+    update: jest.fn().mockResolvedValue({}),
+    delete: jest.fn().mockResolvedValue({ affected: 1 }),
   },
   query: jest.fn(),
 };
@@ -680,6 +682,200 @@ describe('ReportsService', () => {
           chartData as any,
         ),
       ).rejects.toBeDefined(); // Will fail because chart generator needs real data
+    });
+  });
+
+  // ─── generateChartByType ─────────────────────────────────────────────────
+
+  describe('generateChartByType', () => {
+    const chartByTypeDto = {
+      reportId: TEST_REPORT_ID,
+      chartId: TEST_CHART_ID,
+      fromDate: '2026-01-01',
+      toDate: '2026-01-31',
+      interval: 'hourly',
+    };
+
+    const MOCK_DB_REPORT_FOR_CHART = {
+      id: TEST_REPORT_ID,
+      fromDate: new Date('2026-01-01'),
+      toDate: new Date('2026-01-31'),
+      timeFilter: 'hourly',
+      limit: 100,
+      orderBy: JSON.stringify([]),
+      globalFilter: JSON.stringify({ condition: 'AND', rules: [] }),
+      tables: JSON.stringify([]),
+      compare: JSON.stringify([]),
+      operation: JSON.stringify([]),
+      control: JSON.stringify([]),
+      options: JSON.stringify({ threshold: {} }),
+      isQbe: 0,
+    };
+
+    it('should throw BadRequestException when report does not exist', async () => {
+      reportRepo.findOne.mockResolvedValue(null);
+
+      await expect(service.generateChartByType(chartByTypeDto as any, TEST_USER_ID)).rejects.toThrow(
+        BadRequestException,
+      );
+    });
+
+    it('should return table chart when chartId is "0"', async () => {
+      reportRepo.findOne.mockResolvedValue(MOCK_DB_REPORT_FOR_CHART as any);
+
+      // Mock executeQuery path
+      mockQueryBuilder.generateQuery.mockResolvedValue({
+        header: [{ text: 'Col1', datafield: 'col1' }],
+        query: 'SELECT 1',
+        fieldsArray: [],
+      });
+      mockLegacyDataDb.query.mockResolvedValue([{ col1: 'val' }]);
+
+      const result = await service.generateChartByType({ ...chartByTypeDto, chartId: '0' } as any, TEST_USER_ID);
+
+      expect(result.type).toBe('table');
+      expect((result as any).lib.body).toBeDefined();
+      expect((result as any).lib.header).toBeDefined();
+    });
+
+    it('should throw when chart is not found in DB', async () => {
+      reportRepo.findOne.mockResolvedValue(MOCK_DB_REPORT_FOR_CHART as any);
+      mockLegacyDataDb.query.mockResolvedValue([]); // no chart rows
+
+      await expect(service.generateChartByType(chartByTypeDto as any, TEST_USER_ID)).rejects.toThrow(
+        BadRequestException,
+      );
+    });
+
+    it('should dispatch to generatePie for pie chart type', async () => {
+      reportRepo.findOne.mockResolvedValue(MOCK_DB_REPORT_FOR_CHART as any);
+
+      const chartData = { id: TEST_CHART_ID, name: 'Pie', type: 'pie', orderIndex: 0 };
+      mockLegacyDataDb.query.mockResolvedValueOnce([{ data: JSON.stringify(chartData) }]);
+
+      // generatePie calls buildChartGenerateResult -> queryBuilder.generateQuery
+      // then calls the pie chart function which will fail without real DB data.
+      // We spy on generatePie to verify dispatch.
+      const pieSpy = jest.spyOn(service, 'generatePie').mockResolvedValue(chartData as any);
+
+      const result = await service.generateChartByType(chartByTypeDto as any, TEST_USER_ID);
+
+      expect(pieSpy).toHaveBeenCalled();
+      expect(result.type).toBe('pie');
+
+      pieSpy.mockRestore();
+    });
+
+    it('should dispatch to generateDoughnut for doughnut chart type', async () => {
+      reportRepo.findOne.mockResolvedValue(MOCK_DB_REPORT_FOR_CHART as any);
+
+      const chartData = { id: TEST_CHART_ID, name: 'Doughnut', type: 'doughnut', orderIndex: 0 };
+      mockLegacyDataDb.query.mockResolvedValueOnce([{ data: JSON.stringify(chartData) }]);
+
+      const spy = jest.spyOn(service, 'generateDoughnut').mockResolvedValue(chartData as any);
+
+      const result = await service.generateChartByType(chartByTypeDto as any, TEST_USER_ID);
+
+      expect(spy).toHaveBeenCalled();
+      expect(result.type).toBe('doughnut');
+
+      spy.mockRestore();
+    });
+
+    it('should dispatch to generateTrend for trend chart type', async () => {
+      reportRepo.findOne.mockResolvedValue(MOCK_DB_REPORT_FOR_CHART as any);
+
+      const chartData = { id: TEST_CHART_ID, name: 'Trend', type: 'trend', orderIndex: 0 };
+      mockLegacyDataDb.query.mockResolvedValueOnce([{ data: JSON.stringify(chartData) }]);
+
+      const spy = jest.spyOn(service, 'generateTrend').mockResolvedValue(chartData as any);
+
+      const result = await service.generateChartByType(chartByTypeDto as any, TEST_USER_ID);
+
+      expect(spy).toHaveBeenCalled();
+      expect(result.type).toBe('trend');
+
+      spy.mockRestore();
+    });
+
+    it('should dispatch to generateVerticalBar for vertical_bar chart type', async () => {
+      reportRepo.findOne.mockResolvedValue(MOCK_DB_REPORT_FOR_CHART as any);
+
+      const chartData = { id: TEST_CHART_ID, name: 'VBar', type: 'vertical_bar', orderIndex: 0 };
+      mockLegacyDataDb.query.mockResolvedValueOnce([{ data: JSON.stringify(chartData) }]);
+
+      const spy = jest.spyOn(service, 'generateVerticalBar').mockResolvedValue(chartData as any);
+
+      const result = await service.generateChartByType(chartByTypeDto as any, TEST_USER_ID);
+
+      expect(spy).toHaveBeenCalled();
+      expect(result.type).toBe('vertical_bar');
+
+      spy.mockRestore();
+    });
+
+    it('should dispatch to generateHorizontalBar for horizontal_bar chart type', async () => {
+      reportRepo.findOne.mockResolvedValue(MOCK_DB_REPORT_FOR_CHART as any);
+
+      const chartData = { id: TEST_CHART_ID, name: 'HBar', type: 'horizontal_bar', orderIndex: 0 };
+      mockLegacyDataDb.query.mockResolvedValueOnce([{ data: JSON.stringify(chartData) }]);
+
+      const spy = jest.spyOn(service, 'generateHorizontalBar').mockResolvedValue(chartData as any);
+
+      const result = await service.generateChartByType(chartByTypeDto as any, TEST_USER_ID);
+
+      expect(spy).toHaveBeenCalled();
+      expect(result.type).toBe('horizontal_bar');
+
+      spy.mockRestore();
+    });
+
+    it('should dispatch to generateProgress for progress chart type', async () => {
+      reportRepo.findOne.mockResolvedValue(MOCK_DB_REPORT_FOR_CHART as any);
+
+      const chartData = { id: TEST_CHART_ID, name: 'Progress', type: 'progress', orderIndex: 0 };
+      mockLegacyDataDb.query.mockResolvedValueOnce([{ data: JSON.stringify(chartData) }]);
+
+      const spy = jest.spyOn(service, 'generateProgress').mockResolvedValue(chartData as any);
+
+      const result = await service.generateChartByType(chartByTypeDto as any, TEST_USER_ID);
+
+      expect(spy).toHaveBeenCalled();
+      expect(result.type).toBe('progress');
+
+      spy.mockRestore();
+    });
+
+    it('should dispatch to generateExplodedProgress for exploded_progress chart type', async () => {
+      reportRepo.findOne.mockResolvedValue(MOCK_DB_REPORT_FOR_CHART as any);
+
+      const chartData = {
+        id: TEST_CHART_ID,
+        name: 'Exploded',
+        type: 'exploded_progress',
+        orderIndex: 0,
+      };
+      mockLegacyDataDb.query.mockResolvedValueOnce([{ data: JSON.stringify(chartData) }]);
+
+      const spy = jest.spyOn(service, 'generateExplodedProgress').mockResolvedValue(chartData as any);
+
+      const result = await service.generateChartByType(chartByTypeDto as any, TEST_USER_ID);
+
+      expect(spy).toHaveBeenCalled();
+      expect(result.type).toBe('exploded_progress');
+
+      spy.mockRestore();
+    });
+
+    it('should return chart as-is for unknown chart type', async () => {
+      reportRepo.findOne.mockResolvedValue(MOCK_DB_REPORT_FOR_CHART as any);
+
+      const chartData = { id: TEST_CHART_ID, name: 'Unknown', type: 'unknown_type', orderIndex: 0 };
+      mockLegacyDataDb.query.mockResolvedValueOnce([{ data: JSON.stringify(chartData) }]);
+
+      const result = await service.generateChartByType(chartByTypeDto as any, TEST_USER_ID);
+
+      expect(result.type).toBe('unknown_type');
     });
   });
 
