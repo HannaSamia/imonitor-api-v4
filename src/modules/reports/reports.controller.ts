@@ -39,156 +39,14 @@ export class ReportsController {
     return this.reportsService.list(userId);
   }
 
-  @Get(':id')
-  @ApiOperation({ summary: 'Get report by ID' })
-  @ApiResponse({ status: 200, description: 'Report returned' })
-  getReportById(@Param('id') id: string, @CurrentUser('id') userId: string) {
-    return this.reportsService.getReportById(id, userId);
-  }
-
   @Get('shared/:id')
   @ApiOperation({ summary: 'Get shared report by ID' })
   @ApiResponse({ status: 200, description: 'Shared report returned' })
-  getSharedReportById(@Param('id') id: string) {
-    return this.reportsService.getSharedReportById(id);
+  getSharedReportById(@Param('id') id: string, @CurrentUser('id') userId: string) {
+    return this.reportsService.getSharedReportById(id, userId);
   }
 
-  @Post()
-  @ApiOperation({ summary: 'Create a new report' })
-  @ApiResponse({ status: 201, description: 'Report created' })
-  save(@Body() dto: SaveReportDto, @CurrentUser('id') userId: string) {
-    return this.reportsService.save(dto, userId);
-  }
-
-  @Put(':id')
-  @ApiOperation({ summary: 'Update an existing report' })
-  @ApiResponse({ status: 200, description: 'Report updated' })
-  update(@Body() dto: EditReportDto, @CurrentUser('id') userId: string) {
-    return this.reportsService.update(dto, userId);
-  }
-
-  @Put('rename')
-  @ApiOperation({ summary: 'Rename a report' })
-  @ApiResponse({ status: 200, description: 'Report renamed' })
-  rename(@Body() dto: RenameReportDto, @CurrentUser('id') userId: string) {
-    return this.reportsService.rename(dto, userId);
-  }
-
-  @Put('favorite/:id')
-  @ApiOperation({ summary: 'Toggle report favorite status' })
-  @ApiResponse({ status: 200, description: 'Favorite status toggled' })
-  favorite(@Param('id') id: string, @Query('isShared') isShared: string) {
-    return this.reportsService.favorite(id, isShared === 'true');
-  }
-
-  @Put('transfer/ownership')
-  @ApiOperation({ summary: 'Transfer report ownership' })
-  @ApiResponse({ status: 200, description: 'Ownership transferred' })
-  changeReportOwner(@Body() dto: ChangeReportOwnerDto, @CurrentUser('id') userId: string) {
-    return this.reportsService.changeReportOwner(dto, userId);
-  }
-
-  @Delete(':id')
-  @ApiOperation({ summary: 'Delete a report' })
-  @ApiResponse({ status: 200, description: 'Report deleted' })
-  deleteReport(@Param('id') id: string, @CurrentUser('id') userId: string) {
-    return this.reportsService.deleteReport(userId, id);
-  }
-
-  @Post(':id/share')
-  @ApiOperation({ summary: 'Share report with users' })
-  @ApiResponse({ status: 201, description: 'Report shared' })
-  shareReport(@Param('id') id: string, @Body() dto: ShareReportDto) {
-    return this.reportsService.share(id, dto);
-  }
-
-  @Post('shared/:id')
-  @ApiOperation({ summary: 'Save a shared report as own' })
-  @ApiResponse({ status: 201, description: 'Shared report saved as own' })
-  saveSharedReport(@Param('id') id: string, @CurrentUser('id') userId: string) {
-    return this.reportsService.saveSharedReport(id, userId);
-  }
-
-  @Get('closetab/:reportId/:chartId')
-  @ApiOperation({ summary: 'Close/delete a report chart tab' })
-  @ApiResponse({ status: 200, description: 'Chart tab closed' })
-  closeTab(@Param('reportId') reportId: string, @Param('chartId') chartId: string) {
-    return this.reportsService.closeTab(reportId, chartId);
-  }
-
-  // --- Chart Generation ---
-
-  @Post('generate/tabular')
-  @ApiOperation({ summary: 'Generate tabular report data' })
-  @ApiResponse({ status: 200, description: 'Tabular data returned' })
-  tabular(@Body() dto: GenerateReportDto) {
-    return this.reportsService.executeQuery(dto);
-  }
-
-  @Post('generate/query')
-  @ApiOperation({ summary: 'Generate SQL query without executing' })
-  @ApiResponse({ status: 200, description: 'SQL query returned' })
-  generatedQuery(@Body() dto: GenerateReportDto) {
-    return this.reportsService.generatedQuery(dto);
-  }
-
-  @Post('generate/pie')
-  @ApiOperation({ summary: 'Generate pie chart' })
-  @ApiResponse({ status: 200, description: 'Pie chart data returned' })
-  pie(@Body() dto: GenerateChartDto) {
-    return this.reportsService.generatePie(dto.tabular, dto.chart);
-  }
-
-  @Post('generate/doughnut')
-  @ApiOperation({ summary: 'Generate doughnut chart' })
-  @ApiResponse({ status: 200, description: 'Doughnut chart data returned' })
-  doughnut(@Body() dto: GenerateChartDto) {
-    return this.reportsService.generateDoughnut(dto.tabular, dto.chart);
-  }
-
-  @Post('generate/trend')
-  @ApiOperation({ summary: 'Generate trend chart' })
-  @ApiResponse({ status: 200, description: 'Trend chart data returned' })
-  trend(@Body() dto: GenerateChartDto) {
-    return this.reportsService.generateTrend(dto.tabular, dto.chart);
-  }
-
-  @Post('generate/bar/vertical')
-  @ApiOperation({ summary: 'Generate vertical bar chart' })
-  @ApiResponse({ status: 200, description: 'Vertical bar chart data returned' })
-  verticalChart(@Body() dto: GenerateChartDto) {
-    return this.reportsService.generateVerticalBar(dto.tabular, dto.chart);
-  }
-
-  @Post('generate/bar/horizontal')
-  @ApiOperation({ summary: 'Generate horizontal bar chart' })
-  @ApiResponse({ status: 200, description: 'Horizontal bar chart data returned' })
-  horizontalChart(@Body() dto: GenerateChartDto) {
-    return this.reportsService.generateHorizontalBar(dto.tabular, dto.chart);
-  }
-
-  @Post('generate/progress')
-  @ApiOperation({ summary: 'Generate progress chart' })
-  @ApiResponse({ status: 200, description: 'Progress chart data returned' })
-  progress(@Body() dto: GenerateChartDto) {
-    return this.reportsService.generateProgress(dto.tabular, dto.chart);
-  }
-
-  @Post('generate/progress/exploded')
-  @ApiOperation({ summary: 'Generate exploded progress chart' })
-  @ApiResponse({ status: 200, description: 'Exploded progress chart data returned' })
-  explodedProgress(@Body() dto: GenerateChartDto) {
-    return this.reportsService.generateExplodedProgress(dto.tabular, dto.chart);
-  }
-
-  @Post('dataanalysis/chart')
-  @ApiOperation({ summary: 'Generate chart by type for data analysis' })
-  @ApiResponse({ status: 200, description: 'Chart data returned' })
-  generateChartByType(@Body() dto: GenerateChartByTypeDto, @CurrentUser('id') userId: string) {
-    return this.reportsService.generateChartByType(dto, userId);
-  }
-
-  // --- Export (full report) ---
+  // --- Export (full report) — must be before :id ---
 
   @Get('export/csv/:reportId/:status/:fromdate/:todate/:interval')
   @ApiOperation({ summary: 'Export report to CSV' })
@@ -348,5 +206,151 @@ export class ReportsController {
       params.interval,
       userId,
     );
+  }
+
+  // --- Wildcard :id routes LAST to avoid capturing named routes ---
+
+  @Get(':id')
+  @ApiOperation({ summary: 'Get report by ID' })
+  @ApiResponse({ status: 200, description: 'Report returned' })
+  getReportById(@Param('id') id: string, @CurrentUser('id') userId: string) {
+    return this.reportsService.getReportById(id, userId);
+  }
+
+  // --- Mutation routes (POST/PUT/DELETE — no ordering conflict with GET :id) ---
+
+  @Post()
+  @ApiOperation({ summary: 'Create a new report' })
+  @ApiResponse({ status: 201, description: 'Report created' })
+  save(@Body() dto: SaveReportDto, @CurrentUser('id') userId: string) {
+    return this.reportsService.save(dto, userId);
+  }
+
+  @Put(':id')
+  @ApiOperation({ summary: 'Update an existing report' })
+  @ApiResponse({ status: 200, description: 'Report updated' })
+  update(@Body() dto: EditReportDto, @CurrentUser('id') userId: string) {
+    return this.reportsService.update(dto, userId);
+  }
+
+  @Put('rename')
+  @ApiOperation({ summary: 'Rename a report' })
+  @ApiResponse({ status: 200, description: 'Report renamed' })
+  rename(@Body() dto: RenameReportDto, @CurrentUser('id') userId: string) {
+    return this.reportsService.rename(dto, userId);
+  }
+
+  @Put('favorite/:id')
+  @ApiOperation({ summary: 'Toggle report favorite status' })
+  @ApiResponse({ status: 200, description: 'Favorite status toggled' })
+  favorite(@Param('id') id: string, @Query('isShared') isShared: string) {
+    return this.reportsService.favorite(id, isShared === 'true');
+  }
+
+  @Put('transfer/ownership')
+  @ApiOperation({ summary: 'Transfer report ownership' })
+  @ApiResponse({ status: 200, description: 'Ownership transferred' })
+  changeReportOwner(@Body() dto: ChangeReportOwnerDto, @CurrentUser('id') userId: string) {
+    return this.reportsService.changeReportOwner(dto, userId);
+  }
+
+  @Delete(':id')
+  @ApiOperation({ summary: 'Delete a report' })
+  @ApiResponse({ status: 200, description: 'Report deleted' })
+  deleteReport(@Param('id') id: string, @CurrentUser('id') userId: string) {
+    return this.reportsService.deleteReport(userId, id);
+  }
+
+  @Post(':id/share')
+  @ApiOperation({ summary: 'Share report with users' })
+  @ApiResponse({ status: 201, description: 'Report shared' })
+  shareReport(@Param('id') id: string, @Body() dto: ShareReportDto) {
+    return this.reportsService.share(id, dto);
+  }
+
+  @Post('shared/:id')
+  @ApiOperation({ summary: 'Save a shared report as own' })
+  @ApiResponse({ status: 201, description: 'Shared report saved as own' })
+  saveSharedReport(@Param('id') id: string, @CurrentUser('id') userId: string) {
+    return this.reportsService.saveSharedReport(id, userId);
+  }
+
+  @Delete('closetab/:reportId/:chartId')
+  @ApiOperation({ summary: 'Close/delete a report chart tab' })
+  @ApiResponse({ status: 200, description: 'Chart tab closed' })
+  closeTab(@Param('reportId') reportId: string, @Param('chartId') chartId: string) {
+    return this.reportsService.closeTab(reportId, chartId);
+  }
+
+  // --- Chart Generation ---
+
+  @Post('generate/tabular')
+  @ApiOperation({ summary: 'Generate tabular report data' })
+  @ApiResponse({ status: 200, description: 'Tabular data returned' })
+  tabular(@Body() dto: GenerateReportDto) {
+    return this.reportsService.executeQuery(dto);
+  }
+
+  @Post('generate/query')
+  @ApiOperation({ summary: 'Generate SQL query without executing' })
+  @ApiResponse({ status: 200, description: 'SQL query returned' })
+  generatedQuery(@Body() dto: GenerateReportDto) {
+    return this.reportsService.generatedQuery(dto);
+  }
+
+  @Post('generate/pie')
+  @ApiOperation({ summary: 'Generate pie chart' })
+  @ApiResponse({ status: 200, description: 'Pie chart data returned' })
+  pie(@Body() dto: GenerateChartDto) {
+    return this.reportsService.generatePie(dto.tabular, dto.chart);
+  }
+
+  @Post('generate/doughnut')
+  @ApiOperation({ summary: 'Generate doughnut chart' })
+  @ApiResponse({ status: 200, description: 'Doughnut chart data returned' })
+  doughnut(@Body() dto: GenerateChartDto) {
+    return this.reportsService.generateDoughnut(dto.tabular, dto.chart);
+  }
+
+  @Post('generate/trend')
+  @ApiOperation({ summary: 'Generate trend chart' })
+  @ApiResponse({ status: 200, description: 'Trend chart data returned' })
+  trend(@Body() dto: GenerateChartDto) {
+    return this.reportsService.generateTrend(dto.tabular, dto.chart);
+  }
+
+  @Post('generate/bar/vertical')
+  @ApiOperation({ summary: 'Generate vertical bar chart' })
+  @ApiResponse({ status: 200, description: 'Vertical bar chart data returned' })
+  verticalChart(@Body() dto: GenerateChartDto) {
+    return this.reportsService.generateVerticalBar(dto.tabular, dto.chart);
+  }
+
+  @Post('generate/bar/horizontal')
+  @ApiOperation({ summary: 'Generate horizontal bar chart' })
+  @ApiResponse({ status: 200, description: 'Horizontal bar chart data returned' })
+  horizontalChart(@Body() dto: GenerateChartDto) {
+    return this.reportsService.generateHorizontalBar(dto.tabular, dto.chart);
+  }
+
+  @Post('generate/progress')
+  @ApiOperation({ summary: 'Generate progress chart' })
+  @ApiResponse({ status: 200, description: 'Progress chart data returned' })
+  progress(@Body() dto: GenerateChartDto) {
+    return this.reportsService.generateProgress(dto.tabular, dto.chart);
+  }
+
+  @Post('generate/progress/exploded')
+  @ApiOperation({ summary: 'Generate exploded progress chart' })
+  @ApiResponse({ status: 200, description: 'Exploded progress chart data returned' })
+  explodedProgress(@Body() dto: GenerateChartDto) {
+    return this.reportsService.generateExplodedProgress(dto.tabular, dto.chart);
+  }
+
+  @Post('dataanalysis/chart')
+  @ApiOperation({ summary: 'Generate chart by type for data analysis' })
+  @ApiResponse({ status: 200, description: 'Chart data returned' })
+  generateChartByType(@Body() dto: GenerateChartByTypeDto, @CurrentUser('id') userId: string) {
+    return this.reportsService.generateChartByType(dto, userId);
   }
 }

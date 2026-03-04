@@ -23,7 +23,9 @@ import {
   ICustomOperationColumn,
   ICustomCompareColumn,
   ICustomControlColumn,
+  IFieldsArrayEntry,
 } from '../dto/report-interfaces';
+export type { IFieldsArrayEntry } from '../dto/report-interfaces';
 import { REF_TABLE_KEY } from '../constants';
 import { dbRound, dbTruncate } from '../utils/sql-helpers';
 import { CustomColumnType, FieldFunctions } from '../services/query-builder.service';
@@ -31,18 +33,6 @@ import { CustomColumnType, FieldFunctions } from '../services/query-builder.serv
 // ---------------------------------------------------------------------------
 // Internal interfaces for chart generation
 // ---------------------------------------------------------------------------
-
-/** Entry in the fieldsArray produced by QueryBuilderService.generate() */
-export interface IFieldsArrayEntry {
-  draggedId: string;
-  columnDisplayName: string;
-  type: string;
-  operation?: string;
-  isCustomColumn?: boolean;
-  customColumnType?: string;
-  builtString?: string;
-  [key: string]: unknown;
-}
 
 /** Bar series structure used by vertical/horizontal bar charts */
 export interface IBarSerie {
@@ -299,18 +289,7 @@ export function emptyReportChartByType(chart: IChartData): IChartData {
  * Ported from v3 DeepCopyFunction in common.util.ts.
  */
 export function deepCopy<T>(inObject: T): T {
-  if (typeof inObject !== 'object' || inObject === null) {
-    return inObject;
-  }
-
-  const outObject: any = Array.isArray(inObject) ? [] : {};
-
-  for (const key in inObject) {
-    const value = inObject[key];
-    outObject[key] = typeof value === 'object' && value !== null ? deepCopy(value) : value;
-  }
-
-  return outObject as T;
+  return structuredClone(inObject);
 }
 
 // ---------------------------------------------------------------------------

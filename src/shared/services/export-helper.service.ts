@@ -128,7 +128,7 @@ export class ExportHelperService {
       });
       const page = await browser.newPage();
       await page.setViewport({ width: 1580, height: 2240 });
-      await page.goto(`file://${htmlFilePath}`, { waitUntil: 'domcontentloaded', timeout: 0 });
+      await page.goto(`file://${htmlFilePath}`, { waitUntil: 'networkidle0', timeout: 30000 });
 
       // First pass: measure height
       const initialBuffer = await page.pdf({
@@ -180,8 +180,7 @@ export class ExportHelperService {
         waitForInitialPage: true,
       });
       const page = await browser.newPage();
-      await page.goto(`file://${htmlFilePath}`, { waitUntil: 'domcontentloaded', timeout: 0 });
-      await new Promise((r) => setTimeout(r, 3000)); // Wait for rendering
+      await page.goto(`file://${htmlFilePath}`, { waitUntil: 'networkidle0', timeout: 30000 });
       await page.screenshot({ path: filePath, fullPage: true });
 
       this.logger.log(`PNG exported: ${filePath}`);
@@ -209,8 +208,7 @@ export class ExportHelperService {
         waitForInitialPage: true,
       });
       const page = await browser.newPage();
-      await page.goto(`file://${htmlFilePath}`, { waitUntil: 'domcontentloaded', timeout: 0 });
-      await new Promise((r) => setTimeout(r, 3000)); // Wait for rendering
+      await page.goto(`file://${htmlFilePath}`, { waitUntil: 'networkidle0', timeout: 30000 });
       await page.screenshot({ path: filePath, fullPage: true, type: 'jpeg' });
 
       this.logger.log(`JPEG exported: ${filePath}`);

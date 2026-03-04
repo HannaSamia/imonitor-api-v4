@@ -310,7 +310,7 @@ describe('ReportsService', () => {
         .mockResolvedValueOnce([sharedRow]) // shared report query
         .mockResolvedValueOnce([]); // charts query
 
-      const result = await service.getSharedReportById('shared-1');
+      const result = await service.getSharedReportById('shared-1', TEST_USER_ID);
 
       expect(result.id).toBe('shared-1');
       expect(result.name).toBe('Shared Report');
@@ -320,7 +320,7 @@ describe('ReportsService', () => {
     it('should throw BadRequestException if shared report does not exist', async () => {
       mockDataSource.query.mockResolvedValueOnce([]);
 
-      await expect(service.getSharedReportById('nonexistent')).rejects.toThrow(
+      await expect(service.getSharedReportById('nonexistent', TEST_USER_ID)).rejects.toThrow(
         new BadRequestException(ErrorMessages.SHARED_REPORT_DOES_NOT_EXIST),
       );
     });

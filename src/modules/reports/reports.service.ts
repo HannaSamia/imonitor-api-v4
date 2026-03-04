@@ -56,13 +56,17 @@ const REF_TABLE_KEY = 'refTable';
 const DEFAULT_ADMIN_ID = '0';
 
 /**
- * Safely parse a JSON string, returning null if input is null/undefined.
+ * Safely parse a JSON string, returning null if input is null/undefined or malformed.
  */
 function safeJsonParse<T>(value: string | null | undefined): T | null {
   if (value === null || value === undefined) {
     return null;
   }
-  return JSON.parse(value) as T;
+  try {
+    return JSON.parse(value) as T;
+  } catch {
+    return null;
+  }
 }
 
 @Injectable()
@@ -313,7 +317,7 @@ export class ReportsService {
    * and its charts via the original report's reportId.
    * Mirrors v3 getSharedReportById().
    */
-  async getSharedReportById(sharedReportId: string): Promise<ReportResponseDto> {
+  async getSharedReportById(sharedReportId: string, userId: string): Promise<ReportResponseDto> {
     const selectQuery = `
       SELECT
         sr.id,
@@ -339,11 +343,12 @@ export class ReportsService {
         r.isQbe
       FROM core_shared_report sr
       LEFT JOIN core_report r ON sr.reportId = r.id
-      WHERE sr.id = ?
+      WHERE sr.id = ? AND sr.ownerId = ?
     `;
 
     const sharedReportResult: Array<Record<string, unknown>> = await this.dataSource.query(selectQuery, [
       sharedReportId,
+      userId,
     ]);
 
     if (sharedReportResult.length <= 0) {
@@ -507,21 +512,26 @@ export class ReportsService {
     const reportModules = new Set<string>();
     const reportTables: Array<[string, string, string]> = [];
 
-    try {
-      // Look up moduleId for each table
-      for (const table of dto.tables) {
-        const moduleTable = await this.modulesTablesRepo.findOne({
-          where: { id: table.id },
-          select: { mId: true },
-        });
-        if (moduleTable) {
-          reportModules.add(String(moduleTable.mId));
-          reportTables.push([id, table.id, table.displayName]);
-        }
+    // Look up moduleId for each table (read-only, outside transaction)
+    for (const table of dto.tables) {
+      const moduleTable = await this.modulesTablesRepo.findOne({
+        where: { id: table.id },
+        select: { mId: true },
+      });
+      if (moduleTable) {
+        reportModules.add(String(moduleTable.mId));
+        reportTables.push([id, table.id, table.displayName]);
       }
+    }
 
+    const queryRunner = this.dataSource.createQueryRunner();
+    await queryRunner.connect();
+    await queryRunner.startTransaction();
+
+    try {
       // Update the report
-      await this.reportRepo.update(
+      await queryRunner.manager.update(
+        CoreReport,
         { id },
         {
           name: dto.name,
@@ -542,83 +552,89 @@ export class ReportsService {
       );
 
       // Delete and re-insert report modules and used tables
-      await this.reportModuleRepo.delete({ reportId: id });
-      await this.reportUsedTableRepo.delete({ reportId: id });
+      await queryRunner.manager.delete(CoreReportModule, { reportId: id });
+      await queryRunner.manager.delete(CoreReportUsedTable, { reportId: id });
 
       if (reportModules.size > 0) {
         const moduleInserts = Array.from(reportModules).map((moduleId) => ({
           reportId: id,
           moduleId,
         }));
-        await this.reportModuleRepo.insert(moduleInserts);
+        await queryRunner.manager.insert(CoreReportModule, moduleInserts);
       }
 
       if (reportTables.length > 0) {
-        const usedTableInserts = reportTables.map(([reportId, tableId, tableName]) => ({
-          reportId,
+        const usedTableInserts = reportTables.map(([rId, tableId, tableName]) => ({
+          reportId: rId,
           tableId,
           tableName,
         }));
-        await this.reportUsedTableRepo.insert(usedTableInserts);
+        await queryRunner.manager.insert(CoreReportUsedTable, usedTableInserts);
       }
-    } catch (error) {
-      this.logger.error('Error updating report', error);
-      throw new BadRequestException(ErrorMessages.ERROR_UPDATE);
-    }
 
-    // Process charts by status
-    const chartsStatus = { ...dto.chartsStatus };
+      // Process charts by status
+      const chartsStatus = { ...dto.chartsStatus };
 
-    for (const chart of dto.charts) {
-      const dataObject = { ...chart };
-      delete (dataObject as Record<string, unknown>).id;
-      delete (dataObject as Record<string, unknown>).name;
-      delete (dataObject as Record<string, unknown>).type;
-      const dataString = JSON.stringify(dataObject);
+      for (const chart of dto.charts) {
+        const dataObject = { ...chart };
+        delete (dataObject as Record<string, unknown>).id;
+        delete (dataObject as Record<string, unknown>).name;
+        delete (dataObject as Record<string, unknown>).type;
+        const dataString = JSON.stringify(dataObject);
 
-      if (chartsStatus[chart.id] !== undefined) {
-        if (chartsStatus[chart.id] === ChartStatus.EDITED) {
-          // Check if chart is used in a default data analysis
-          const isUsed = await this.isDefaultChart(chart.id);
-          if (isUsed) {
-            throw new BadRequestException(ErrorMessages.CHART_ERROR_DEFAULT);
-          }
-          await this.chartRepo.update(
-            { id: chart.id },
-            {
+        if (chartsStatus[chart.id] !== undefined) {
+          if (chartsStatus[chart.id] === ChartStatus.EDITED) {
+            const isUsed = await this.isDefaultChart(chart.id);
+            if (isUsed) {
+              throw new BadRequestException(ErrorMessages.CHART_ERROR_DEFAULT);
+            }
+            await queryRunner.manager.update(
+              CoreReportCharts,
+              { id: chart.id },
+              {
+                name: chart.name,
+                type: chart.type,
+                orderIndex: chart.orderIndex,
+                data: dataString,
+              },
+            );
+          } else if (chartsStatus[chart.id] === ChartStatus.DELETED) {
+            const isUsed = await this.isDefaultChart(chart.id);
+            if (isUsed) {
+              throw new BadRequestException(ErrorMessages.CHART_ERROR_DEFAULT);
+            }
+            await queryRunner.manager.delete(CoreReportCharts, { id: chart.id });
+          } else if (chartsStatus[chart.id] === ChartStatus.CREATED) {
+            await queryRunner.manager.insert(CoreReportCharts, {
+              id: chart.id,
               name: chart.name,
               type: chart.type,
               orderIndex: chart.orderIndex,
               data: dataString,
-            },
-          );
-        } else if (chartsStatus[chart.id] === ChartStatus.DELETED) {
-          const isUsed = await this.isDefaultChart(chart.id);
-          if (isUsed) {
-            throw new BadRequestException(ErrorMessages.CHART_ERROR_DEFAULT);
+              createdAt: this.dateHelper.formatDate() as unknown as Date,
+              createdBy: userId,
+              reportId: id,
+            });
           }
-          await this.chartRepo.delete({ id: chart.id });
-        } else if (chartsStatus[chart.id] === ChartStatus.CREATED) {
-          await this.chartRepo.insert({
-            id: chart.id,
-            name: chart.name,
-            type: chart.type,
-            orderIndex: chart.orderIndex,
-            data: dataString,
-            createdAt: this.dateHelper.formatDate() as unknown as Date,
-            createdBy: userId,
-            reportId: id,
-          });
+          delete chartsStatus[chart.id];
         }
-        delete chartsStatus[chart.id];
       }
-    }
 
-    // Handle any remaining deleted charts not in the charts array
-    for (const chartId of Object.keys(chartsStatus)) {
-      if (chartsStatus[chartId] === ChartStatus.DELETED) {
-        await this.chartRepo.delete({ id: chartId });
+      // Handle any remaining deleted charts not in the charts array
+      for (const chartId of Object.keys(chartsStatus)) {
+        if (chartsStatus[chartId] === ChartStatus.DELETED) {
+          await queryRunner.manager.delete(CoreReportCharts, { id: chartId });
+        }
       }
+
+      await queryRunner.commitTransaction();
+    } catch (error) {
+      await queryRunner.rollbackTransaction();
+      this.logger.error('Error updating report', error);
+      if (error instanceof BadRequestException) throw error;
+      throw new BadRequestException(ErrorMessages.ERROR_UPDATE);
+    } finally {
+      await queryRunner.release();
     }
   }
 
@@ -828,7 +844,7 @@ export class ReportsService {
    * Mirrors v3 saveSharedReport().
    */
   async saveSharedReport(sharedReportId: string, userId: string): Promise<string> {
-    const sharedReport = await this.getSharedReportById(sharedReportId);
+    const sharedReport = await this.getSharedReportById(sharedReportId, userId);
 
     if (!sharedReport) {
       throw new BadRequestException(ErrorMessages.SHARED_REPORT_DOES_NOT_EXIST);

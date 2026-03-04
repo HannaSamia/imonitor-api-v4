@@ -1,5 +1,6 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsString, IsNotEmpty, IsNumber, IsArray, IsObject, Min } from 'class-validator';
+import { IsString, IsNotEmpty, IsNumber, IsArray, IsObject, IsEnum, Min } from 'class-validator';
+import { ReportTimeFilter } from '../../../database/entities/core-report.entity';
 import {
   IReportGlobalFilter,
   IReportOptions,
@@ -27,10 +28,9 @@ export class EditReportDto {
   @IsNotEmpty()
   ownerId: string;
 
-  @ApiProperty({ description: 'Time filter interval' })
-  @IsString()
-  @IsNotEmpty()
-  timeFilter: string;
+  @ApiProperty({ description: 'Time filter interval', enum: ReportTimeFilter })
+  @IsEnum(ReportTimeFilter)
+  timeFilter: ReportTimeFilter;
 
   @ApiProperty({ description: 'Global filter object' })
   @IsObject()

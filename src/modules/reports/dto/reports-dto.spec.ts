@@ -1,5 +1,6 @@
 import { validate } from 'class-validator';
 import { plainToInstance } from 'class-transformer';
+import { ReportTimeFilter } from '../../../database/entities/core-report.entity';
 import { SaveReportDto } from './save-report.dto';
 import { EditReportDto } from './edit-report.dto';
 import { RenameReportDto } from './rename-report.dto';
@@ -21,7 +22,7 @@ function toDto<T extends object>(cls: new (...args: unknown[]) => T, partial: Pa
 describe('SaveReportDto', () => {
   const VALID: Partial<SaveReportDto> = {
     name: 'Test Report',
-    timeFilter: 'hourly',
+    timeFilter: ReportTimeFilter.HOURLY,
     globalFilter: { condition: 'AND', rules: [] },
     options: { threshold: {}, isFooterAggregation: false, globalFieldIndex: 0 },
     fromDate: '2026-01-01',
@@ -47,8 +48,8 @@ describe('SaveReportDto', () => {
     expect(errors.some((e) => e.property === 'name')).toBe(true);
   });
 
-  it('should fail when timeFilter is empty', async () => {
-    const errors = await validate(toDto(SaveReportDto, { ...VALID, timeFilter: '' }));
+  it('should fail when timeFilter is invalid', async () => {
+    const errors = await validate(toDto(SaveReportDto, { ...VALID, timeFilter: 'invalid' as any }));
     expect(errors.some((e) => e.property === 'timeFilter')).toBe(true);
   });
 
@@ -70,7 +71,7 @@ describe('EditReportDto', () => {
     id: 'report-1',
     name: 'Edited Report',
     ownerId: 'user-1',
-    timeFilter: 'daily',
+    timeFilter: ReportTimeFilter.DAILY,
     globalFilter: { condition: 'AND', rules: [] },
     options: { threshold: {}, isFooterAggregation: false, globalFieldIndex: 0 },
     fromDate: '2026-01-01',

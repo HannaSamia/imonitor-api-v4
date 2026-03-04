@@ -231,6 +231,25 @@ export interface IChartData {
   [key: string]: unknown;
 }
 
+// --- Fields Array Entry (used by QueryBuilder + chart generators) ---
+
+export interface IFieldsArrayEntry {
+  tableId?: string;
+  type: string;
+  tableIndex?: number;
+  draggedId: string;
+  isCustomColumn: boolean;
+  operation?: string;
+  tableName?: string;
+  tableNodeColumn?: string;
+  columnName?: string;
+  columnDisplayName: string;
+  refNodeColumn?: string;
+  customColumnType?: string;
+  builtString?: string;
+  [key: string]: unknown;
+}
+
 // --- Tabular Header ---
 
 export interface ITabularHeader {
