@@ -15,6 +15,7 @@ import { CoreApplicationUsers } from '../../database/entities/core-application-u
 import { LegacyDataDbService } from '../../database/legacy-data-db/legacy-data-db.service';
 import { DateHelperService } from '../../shared/services/date-helper.service';
 import { ErrorMessages } from '../../shared/constants/error-messages';
+import { ExportHelperService } from '../../shared/services/export-helper.service';
 import { AvailableRoles } from '../../shared/enums/roles.enum';
 import { FETCH_CHART_DB_FUNCTION, REPORT_TABLE_CHART_DEFAULT_VALUE, REPORT_TABLE_ID } from './constants';
 import { ChartStatus, ChartTypes } from './enums';
@@ -27,6 +28,7 @@ import { generateHorizontalBar as generateHorizontalBarChart } from './charts/ho
 import { generateProgress as generateProgressChart } from './charts/progress.chart';
 import { generateExplodedProgress as generateExplodedProgressChart } from './charts/exploded-progress.chart';
 import { deepCopy } from './charts/chart-helpers';
+import { exportReportHTMLScript } from './utils/export-html-templates';
 import {
   SaveReportDto,
   EditReportDto,
@@ -92,6 +94,7 @@ export class ReportsService {
     private readonly legacyDataDb: LegacyDataDbService,
     private readonly dateHelper: DateHelperService,
     private readonly queryBuilder: QueryBuilderService,
+    private readonly exportHelper: ExportHelperService,
     private readonly configService: ConfigService,
   ) {
     this.coreDbName = this.configService.get<string>('coreDbName', '`iMonitorV3_1`');
@@ -1196,6 +1199,35 @@ export class ReportsService {
 
   // --- Export ---
 
+  /**
+   * Fetch report + run tabular query for export.
+   * Mirrors v3 fetchExportReport().
+   */
+  private async fetchExportReport(
+    reportId: string,
+    _status: string,
+    fromDate: string,
+    toDate: string,
+    interval: string,
+    userId: string,
+  ) {
+    const report = await this.getReportById(reportId, userId);
+    const generateObject: GenerateReportDto = {
+      fromDate,
+      toDate,
+      timeFilter: interval,
+      limit: report.limit ?? undefined,
+      tables: report.tables ?? [],
+      control: report.control ?? [],
+      compare: report.compare ?? [],
+      operation: report.operation ?? [],
+      globalFilter: report.globalFilter ?? { condition: 'AND', rules: [] },
+      orderBy: report.orderBy ?? [],
+    };
+    const tabular = await this.executeQuery(generateObject);
+    return { report, tabular, generateObject };
+  }
+
   async exportCSV(
     reportId: string,
     status: string,
@@ -1204,8 +1236,9 @@ export class ReportsService {
     interval: string,
     userId: string,
   ): Promise<string> {
-    // TODO: Phase 4 — Task 4.4
-    throw new Error('Not implemented');
+    const { tabular } = await this.fetchExportReport(reportId, status, fromDate, toDate, interval, userId);
+    const csvHeader = tabular.header.filter((h) => !h.hidden).map((h) => ({ id: h.text, title: h.text }));
+    return this.exportHelper.exportTableCSV(csvHeader, tabular.body);
   }
 
   async exportJSON(
@@ -1216,8 +1249,8 @@ export class ReportsService {
     interval: string,
     userId: string,
   ): Promise<string> {
-    // TODO: Phase 4 — Task 4.4
-    throw new Error('Not implemented');
+    const { tabular } = await this.fetchExportReport(reportId, status, fromDate, toDate, interval, userId);
+    return this.exportHelper.exportJSON(JSON.stringify(tabular));
   }
 
   async exportHTML(
@@ -1227,9 +1260,36 @@ export class ReportsService {
     toDate: string,
     interval: string,
     userId: string,
+    enableLocalCdn = false,
+    isPdf = false,
   ): Promise<string> {
-    // TODO: Phase 4 — Task 4.4
-    throw new Error('Not implemented');
+    const { report, tabular, generateObject } = await this.fetchExportReport(
+      reportId,
+      status,
+      fromDate,
+      toDate,
+      interval,
+      userId,
+    );
+
+    // Generate charts in parallel
+    const chartResults = await Promise.all(
+      (report.charts ?? []).map(async (chart) => {
+        try {
+          const generated = await this.generateChartByType(
+            { reportId, chartId: chart.id, fromDate, toDate, interval },
+            userId,
+          );
+          return JSON.stringify(generated);
+        } catch {
+          return '{}';
+        }
+      }),
+    );
+
+    const cdns = this.exportHelper.getExportCdns(enableLocalCdn);
+    const htmlContent = exportReportHTMLScript(cdns, chartResults, tabular, report, isPdf);
+    return this.exportHelper.exportHtml(htmlContent);
   }
 
   async exportPDF(
@@ -1240,8 +1300,15 @@ export class ReportsService {
     interval: string,
     userId: string,
   ): Promise<string> {
-    // TODO: Phase 4 — Task 4.4
-    throw new Error('Not implemented');
+    const htmlPath = await this.exportHTML(reportId, status, fromDate, toDate, interval, userId, true, true);
+    try {
+      const pdfPath = await this.exportHelper.exportPDF(htmlPath);
+      await this.exportHelper.cleanupFile(htmlPath);
+      return pdfPath;
+    } catch (error) {
+      await this.exportHelper.cleanupFile(htmlPath);
+      throw new BadRequestException(ErrorMessages.ERROR_OCCURED);
+    }
   }
 
   async exportPNG(
@@ -1252,8 +1319,15 @@ export class ReportsService {
     interval: string,
     userId: string,
   ): Promise<string> {
-    // TODO: Phase 4 — Task 4.4
-    throw new Error('Not implemented');
+    const htmlPath = await this.exportHTML(reportId, status, fromDate, toDate, interval, userId, true);
+    try {
+      const pngPath = await this.exportHelper.exportPNG(htmlPath);
+      await this.exportHelper.cleanupFile(htmlPath);
+      return pngPath;
+    } catch (error) {
+      await this.exportHelper.cleanupFile(htmlPath);
+      throw new BadRequestException(ErrorMessages.ERROR_OCCURED);
+    }
   }
 
   async exportJPEG(
@@ -1264,8 +1338,15 @@ export class ReportsService {
     interval: string,
     userId: string,
   ): Promise<string> {
-    // TODO: Phase 4 — Task 4.4
-    throw new Error('Not implemented');
+    const htmlPath = await this.exportHTML(reportId, status, fromDate, toDate, interval, userId, true);
+    try {
+      const jpegPath = await this.exportHelper.exportJPEG(htmlPath);
+      await this.exportHelper.cleanupFile(htmlPath);
+      return jpegPath;
+    } catch (error) {
+      await this.exportHelper.cleanupFile(htmlPath);
+      throw new BadRequestException(ErrorMessages.ERROR_OCCURED);
+    }
   }
 
   async exportExcel(
@@ -1276,9 +1357,18 @@ export class ReportsService {
     interval: string,
     userId: string,
   ): Promise<string> {
-    // TODO: Phase 4 — Task 4.4
-    throw new Error('Not implemented');
+    const { tabular } = await this.fetchExportReport(reportId, status, fromDate, toDate, interval, userId);
+    const visibleHeaders = tabular.header.filter((h) => !h.hidden);
+    return this.exportHelper.exportTabularToExcel([
+      {
+        name: 'Report',
+        header: visibleHeaders.map((h) => ({ text: h.text, datafield: h.datafield || h.text })),
+        body: tabular.body,
+      },
+    ]);
   }
+
+  // --- Per-tab exports ---
 
   async exportTabHTML(
     reportId: string,
@@ -1289,8 +1379,10 @@ export class ReportsService {
     interval: string,
     userId: string,
   ): Promise<string> {
-    // TODO: Phase 4 — Task 4.5
-    throw new Error('Not implemented');
+    const chart = await this.generateChartByType({ reportId, chartId, fromDate, toDate, interval }, userId);
+    const cdns = this.exportHelper.getExportCdns(true);
+    const htmlContent = exportReportHTMLScript(cdns, [JSON.stringify(chart)], { header: [], body: [] }, {}, false);
+    return this.exportHelper.exportHtml(htmlContent);
   }
 
   async exportTabPDF(
@@ -1302,8 +1394,15 @@ export class ReportsService {
     interval: string,
     userId: string,
   ): Promise<string> {
-    // TODO: Phase 4 — Task 4.5
-    throw new Error('Not implemented');
+    const htmlPath = await this.exportTabHTML(reportId, status, chartId, fromDate, toDate, interval, userId);
+    try {
+      const pdfPath = await this.exportHelper.exportPDF(htmlPath);
+      await this.exportHelper.cleanupFile(htmlPath);
+      return pdfPath;
+    } catch (error) {
+      await this.exportHelper.cleanupFile(htmlPath);
+      throw new BadRequestException(ErrorMessages.ERROR_OCCURED);
+    }
   }
 
   async exportTabPNG(
@@ -1315,8 +1414,15 @@ export class ReportsService {
     interval: string,
     userId: string,
   ): Promise<string> {
-    // TODO: Phase 4 — Task 4.5
-    throw new Error('Not implemented');
+    const htmlPath = await this.exportTabHTML(reportId, status, chartId, fromDate, toDate, interval, userId);
+    try {
+      const pngPath = await this.exportHelper.exportPNG(htmlPath);
+      await this.exportHelper.cleanupFile(htmlPath);
+      return pngPath;
+    } catch (error) {
+      await this.exportHelper.cleanupFile(htmlPath);
+      throw new BadRequestException(ErrorMessages.ERROR_OCCURED);
+    }
   }
 
   async exportTabJPEG(
@@ -1328,8 +1434,15 @@ export class ReportsService {
     interval: string,
     userId: string,
   ): Promise<string> {
-    // TODO: Phase 4 — Task 4.5
-    throw new Error('Not implemented');
+    const htmlPath = await this.exportTabHTML(reportId, status, chartId, fromDate, toDate, interval, userId);
+    try {
+      const jpegPath = await this.exportHelper.exportJPEG(htmlPath);
+      await this.exportHelper.cleanupFile(htmlPath);
+      return jpegPath;
+    } catch (error) {
+      await this.exportHelper.cleanupFile(htmlPath);
+      throw new BadRequestException(ErrorMessages.ERROR_OCCURED);
+    }
   }
 
   // --- Private Helpers ---
