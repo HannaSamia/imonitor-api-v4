@@ -26,6 +26,24 @@ export const ErrorMessages = {
   HEARTBEAT: 'HEARTBEAT',
   HAS_ACCESS_PRIVILEGE: 'HAS_ACCESS_PRIVILIGE',
 
+  // Report errors (preserving v3 messages exactly)
+  REPORT_DOES_NOT_EXIST: 'Report does not exist',
+  SHARED_REPORT_DOES_NOT_EXIST: 'Shared report does not exist',
+  REPORT_DOES_NOT_HAVE_MODULES: 'Report does not have moduleIds',
+  ERROR_WHILE_SAVING_REPORT: 'Error occured while saving the report',
+  USER_ALREADY_OWNS_REPORT: 'You already own this report!',
+  REPORT_IS_BEING_USED_IN_DATA_ANALYSIS: 'This report is being used is the following Data Analysis: ',
+  REPORT_SUCCESSFULLY_DELETED: 'Report successfully deleted',
+  REPORT_OWNER_UPDATED: 'Report owner successfully updated',
+  REPORT_NAME_UPDATED: 'Report name successfully updated',
+  NO_PRIVILEGED_TABLES: 'You have no privilege on any view!',
+  USER_NOT_PRIVILEGED_TO_SAVE: 'You are not privileged to save!',
+  ERROR_SHARE: 'Error occured durring the share process',
+  ERROR_UPDATE: 'Error occured durring the update process',
+  ERROR_DELETE: 'Error occured durring the delete process',
+  ACCESS_DENIED: "You don't have access to this widget Builder",
+  CHART_ERROR_DEFAULT: 'Operation failed, chart used in system and cannot be modified',
+
   // Generic errors
   NOT_FOUND: 'You are lost',
   INTERNAL_ERROR: 'Something went Wrong, please contact the support',

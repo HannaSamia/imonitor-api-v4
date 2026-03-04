@@ -34,24 +34,24 @@ Implement the 12 CRUD + sharing endpoints with full privilege checks.
 
 ### Tasks
 
-- [ ] Task 2.1: Implement `privilegedStatisticTables()` — fetch tables user has access to via CoreModulesTables/CoreTablesField/CorePrivileges joins
-- [ ] Task 2.2: Implement `list()` — get user's reports + shared reports, filtered by privilege
-- [ ] Task 2.3: Implement `getReportById()` — load report with charts, modules, usedTables relations; validate access
-- [ ] Task 2.4: Implement `getSharedReportById()` — load shared report entry + full report
-- [ ] Task 2.5: Implement `save()` — create report + charts + modules + usedTables in transaction
-- [ ] Task 2.6: Implement `update()` — update report + sync charts (create/update/delete by ChartStatus) in transaction
-- [ ] Task 2.7: Implement `rename()`, `favorite()`, `changeReportOwner()` — simple update operations with ownership validation
-- [ ] Task 2.8: Implement `deleteReport()` — ownership + module admin check, cascade delete
-- [ ] Task 2.9: Implement `share()` — insert CoreSharedReport rows for each userId
-- [ ] Task 2.10: Implement `saveSharedReport()` — duplicate shared report as user's own (new UUID, copy charts/modules/usedTables)
-- [ ] Task 2.11: Implement `closeTab()` — delete chart by reportId + chartId
-- [ ] Task 2.12: Wire all CRUD endpoints in controller with Swagger decorators, guards (`@UseGuards(PrivilegeGuard)`), and `@CurrentUser()`
+- [x] Task 2.1: Implement `privilegedStatisticTables()` — fetch tables user has access to via CoreModulesTables/CoreTablesField/CorePrivileges joins
+- [x] Task 2.2: Implement `list()` — get user's reports + shared reports, filtered by privilege
+- [x] Task 2.3: Implement `getReportById()` — load report with charts, modules, usedTables relations; validate access
+- [x] Task 2.4: Implement `getSharedReportById()` — load shared report entry + full report
+- [x] Task 2.5: Implement `save()` — create report + charts + modules + usedTables in transaction
+- [x] Task 2.6: Implement `update()` — update report + sync charts (create/update/delete by ChartStatus) in transaction
+- [x] Task 2.7: Implement `rename()`, `favorite()`, `changeReportOwner()` — simple update operations with ownership validation
+- [x] Task 2.8: Implement `deleteReport()` — ownership + module admin check, cascade delete
+- [x] Task 2.9: Implement `share()` — insert CoreSharedReport rows for each userId
+- [x] Task 2.10: Implement `saveSharedReport()` — duplicate shared report as user's own (new UUID, copy charts/modules/usedTables)
+- [x] Task 2.11: Implement `closeTab()` — delete chart by reportId + chartId
+- [x] Task 2.12: Wire all CRUD endpoints in controller with Swagger decorators, guards (`@UseGuards(PrivilegeGuard)`), and `@CurrentUser()`
 
 ### Verification
 
-- [ ] `npm run build` passes
-- [ ] All 12 CRUD endpoints visible in Swagger
-- [ ] TypeORM queries match v3 SQL logic
+- [x] `npm run build` passes
+- [x] All 12 CRUD endpoints visible in Swagger (controller wired from Phase 1)
+- [x] TypeORM queries match v3 SQL logic
 
 ## Phase 3: Query Builder & Chart Generation
 
