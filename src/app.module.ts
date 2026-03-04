@@ -18,6 +18,7 @@ import { UsersModule } from './modules/users/users.module';
 import { ModulesModule } from './modules/modules/modules.module';
 import { ParametersModule } from './modules/parameters/parameters.module';
 import { NodeDefinitionModule } from './modules/node-definition/node-definition.module';
+import { ReportsModule } from './modules/reports/reports.module';
 import { CorrelationIdMiddleware } from './logger/correlation-id.middleware';
 import { RequestFilterMiddleware } from './shared/middleware/request-filter.middleware';
 import { RateLimiterMiddleware } from './shared/middleware/rate-limiter.middleware';
@@ -51,6 +52,7 @@ import { GlobalExceptionFilter } from './shared/filters/global-exception.filter'
     ModulesModule,
     ParametersModule,
     NodeDefinitionModule,
+    ReportsModule,
   ],
   providers: [
     // Global guard — JWT auth on all routes (unless @Public())

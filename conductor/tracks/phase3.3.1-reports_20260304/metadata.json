@@ -1,0 +1,23 @@
+{
+  "id": "phase3.3.1-reports_20260304",
+  "title": "Phase 3.3.1: Reports Module",
+  "type": "feature",
+  "status": "complete",
+  "created": "2026-03-04T00:00:00.000Z",
+  "updated": "2026-03-04T14:10:00.000Z",
+  "phases": {
+    "total": 5,
+    "completed": 5
+  },
+  "tasks": {
+    "total": 30,
+    "completed": 30
+  },
+  "commits": [
+    "5343d41: feat: Phase 3.3.1 foundation — ReportsModule scaffold, DTOs, enums, constants",
+    "d1c6b5b: feat: Phase 3.3.1 CRUD — report CRUD, sharing, privilege checks",
+    "e180dce: feat: Phase 3.3.1 charts — QueryBuilderService, chart generators, chart endpoints",
+    "ea56e04: feat: Phase 3.3.1 exports — 11 export endpoints",
+    "d5218a7: test: Phase 3.3.1 unit tests — ReportsService, DTOs, chart helpers, SQL helpers"
+  ]
+}

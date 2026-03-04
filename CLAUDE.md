@@ -15,7 +15,7 @@ NestJS migration of enterprise telecom monitoring API. Express.js v3 → NestJS 
 ```bash
 npm run build          # TypeScript compilation — MUST pass before commit
 npm run lint           # ESLint + Prettier — MUST pass before commit
-npm test               # Jest unit tests — 316 tests, 22 suites
+npm test               # Jest unit tests — 421 tests, 26 suites
 npm run test:cov       # Coverage report
 npm run test:e2e       # E2E tests (scaffold only until Phase 5)
 ```
@@ -28,7 +28,8 @@ npm run test:e2e       # E2E tests (scaffold only until Phase 5)
 | 2: Core Architecture | `migration/phase-2-core-architecture` | Done | — |
 | 3.1: Auth & Users | `migration/phase-3.1-auth-users` | Done | `v0.3.1-migration-phase3.1` |
 | 3.2: Core Features | `migration/phase-3.2-core-features` | Done | `v0.3.2-migration-phase3.2` |
-| 3.3: Reporting | `migration/phase-3.3-reporting` | Pending | — |
+| 3.3.1: Reports | `migration/phase-3.3.1-reports` | Done | `v0.3.3.1-migration-phase3.3.1` |
+| 3.3: Reporting (remaining) | `migration/phase-3.3-reporting` | Pending | — |
 | 3.4: Dashboards | `migration/phase-3.4-dashboards` | Pending | — |
 | 3.5: Monitoring | `migration/phase-3.5-monitoring` | Pending | — |
 | 3.6: Customer Care | `migration/phase-3.6-customer-care` | Pending | — |
@@ -147,6 +148,14 @@ GET `/` `/export/excel` `/export/excel/:id` `/:id`, POST `/`, PUT `/`
 
 ### Node Definition (`api/v1/nodedefinition`) — all JWT + PrivilegeGuard
 GET `/` `/export/excel` `/export/excel/:id` `/:id`, POST `/`, PUT `/`
+
+### Reports (`api/v1/reports`) — all JWT + PrivilegeGuard
+GET `/privileges/tables` `/` `/:id` `/shared/:id` `/closetab/:reportId/:chartId`
+POST `/` `/:id/share` `/shared/:id` `/generate/tabular` `/generate/query` `/generate/pie` `/generate/doughnut` `/generate/trend` `/generate/bar/vertical` `/generate/bar/horizontal` `/generate/progress` `/generate/progress/exploded` `/dataanalysis/chart`
+PUT `/:id` `/rename` `/favorite/:id` `/transfer/ownership`
+DELETE `/:id`
+GET `/export/csv/:reportId/:status/:fromdate/:todate/:interval` `/export/json/...` `/export/html/...` `/export/pdf/...` `/export/png/...` `/export/jpeg/...` `/export/excel/...`
+GET `/export/tab/html/:reportId/:status/:chartId/:fromdate/:todate/:interval` `/export/tab/pdf/...` `/export/tab/png/...` `/export/tab/jpeg/...`
 
 ### Health (`/health`) — Public
 DB ping, Redis ping, Memory heap 256MB
