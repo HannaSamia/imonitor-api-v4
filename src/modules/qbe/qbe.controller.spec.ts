@@ -26,7 +26,7 @@ const PROCESS_DTO = {
   timeFilter: 'hourly',
   fromDate: '2026-01-01T00:00:00',
   toDate: '2026-01-02T00:00:00',
-  sql: "SELECT * FROM table1 WHERE stat_date >= _fromDate_ AND stat_date <= _toDate_",
+  sql: 'SELECT * FROM table1 WHERE stat_date >= _fromDate_ AND stat_date <= _toDate_',
   isShared: false,
 };
 
@@ -38,7 +38,7 @@ const SAVE_DTO = {
   globalOrderIndex: 0,
   options: { threshold: {}, isFooterAggregation: false, globalFieldIndex: 0 },
   charts: [],
-  sql: "SELECT * FROM table1 WHERE stat_date >= _fromDate_ AND stat_date <= _toDate_",
+  sql: 'SELECT * FROM table1 WHERE stat_date >= _fromDate_ AND stat_date <= _toDate_',
 };
 
 const UPDATE_DTO = {

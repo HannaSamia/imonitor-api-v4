@@ -2,12 +2,7 @@ import { Controller, Get, Post, Put, Body, Param, UseGuards } from '@nestjs/comm
 import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth } from '@nestjs/swagger';
 import { CurrentUser } from '../../auth/decorators/current-user.decorator';
 import { PrivilegeGuard } from '../../auth/guards/privilege.guard';
-import {
-  SaveQbeDto,
-  UpdateQbeDto,
-  ProcessQbeDto,
-  GenerateQbeChartDto,
-} from './dto';
+import { SaveQbeDto, UpdateQbeDto, ProcessQbeDto, GenerateQbeChartDto } from './dto';
 import { QbeService } from './qbe.service';
 
 @ApiTags('QBE')

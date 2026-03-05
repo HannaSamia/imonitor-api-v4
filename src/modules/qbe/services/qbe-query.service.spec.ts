@@ -114,7 +114,7 @@ describe('QbeQueryService', () => {
 
   describe('isDateSafe', () => {
     it('should pass with both date placeholders', () => {
-      expect(() => service.isDateSafe("SELECT * WHERE date >= _fromDate_ AND date <= _toDate_")).not.toThrow();
+      expect(() => service.isDateSafe('SELECT * WHERE date >= _fromDate_ AND date <= _toDate_')).not.toThrow();
     });
 
     it('should pass with quoted date placeholders', () => {
@@ -127,18 +127,22 @@ describe('QbeQueryService', () => {
     });
 
     it('should throw when only _fromDate_ is missing', () => {
-      expect(() => service.isDateSafe('SELECT * WHERE date <= _toDate_')).toThrow(QbeErrorMessages.DATE_FROM_KEY_MISSING);
+      expect(() => service.isDateSafe('SELECT * WHERE date <= _toDate_')).toThrow(
+        QbeErrorMessages.DATE_FROM_KEY_MISSING,
+      );
     });
 
     it('should throw when only _toDate_ is missing', () => {
-      expect(() => service.isDateSafe('SELECT * WHERE date >= _fromDate_')).toThrow(QbeErrorMessages.DATE_TO_KEY_MISSING);
+      expect(() => service.isDateSafe('SELECT * WHERE date >= _fromDate_')).toThrow(
+        QbeErrorMessages.DATE_TO_KEY_MISSING,
+      );
     });
   });
 
   // ─── checkQbeSafety ──────────────────────────────────────────────────
 
   describe('checkQbeSafety', () => {
-    const validSql = "SELECT * FROM table1 WHERE date >= _fromDate_ AND date <= _toDate_";
+    const validSql = 'SELECT * FROM table1 WHERE date >= _fromDate_ AND date <= _toDate_';
 
     it('should pass for a valid QBE query', () => {
       expect(() => service.checkQbeSafety(validSql)).not.toThrow();
@@ -149,9 +153,9 @@ describe('QbeQueryService', () => {
     });
 
     it('should throw for unsafe SQL', () => {
-      expect(() =>
-        service.checkQbeSafety("INSERT INTO t VALUES(1); -- _fromDate_ _toDate_"),
-      ).toThrow(QbeErrorMessages.UNSAFE_QUERY);
+      expect(() => service.checkQbeSafety('INSERT INTO t VALUES(1); -- _fromDate_ _toDate_')).toThrow(
+        QbeErrorMessages.UNSAFE_QUERY,
+      );
     });
 
     it('should throw for missing date placeholders on safe SQL', () => {

@@ -15,7 +15,7 @@ NestJS migration of enterprise telecom monitoring API. Express.js v3 → NestJS 
 ```bash
 npm run build          # TypeScript compilation — MUST pass before commit
 npm run lint           # ESLint + Prettier — MUST pass before commit
-npm test               # Jest unit tests — 421 tests, 26 suites
+npm test               # Jest unit tests — 611 tests, 32 suites
 npm run test:cov       # Coverage report
 npm run test:e2e       # E2E tests (scaffold only until Phase 5)
 ```
@@ -29,7 +29,7 @@ npm run test:e2e       # E2E tests (scaffold only until Phase 5)
 | 3.1: Auth & Users | `migration/phase-3.1-auth-users` | Done | `v0.3.1-migration-phase3.1` |
 | 3.2: Core Features | `migration/phase-3.2-core-features` | Done | `v0.3.2-migration-phase3.2` |
 | 3.3.1: Reports | `migration/phase-3.3.1-reports` | Done | `v0.3.3.1-migration-phase3.3.1` |
-| 3.3: Reporting (remaining) | `migration/phase-3.3-reporting` | Pending | — |
+| 3.3.2: WidgetBuilder, QBE | `migration/phase-3.3.2-reporting` | Done | — |
 | 3.4: Dashboards | `migration/phase-3.4-dashboards` | Pending | — |
 | 3.5: Monitoring | `migration/phase-3.5-monitoring` | Pending | — |
 | 3.6: Customer Care | `migration/phase-3.6-customer-care` | Pending | — |
@@ -82,6 +82,9 @@ src/
 │   ├── auth/                  # Auth endpoints (login, logout, refresh, heartbeat, access)
 │   ├── users/                 # Users CRUD, privileges, passwords, settings
 │   ├── modules/               # Module metadata — reports & widget builders by module
+│   ├── reports/               # Reports CRUD, query builder, chart generation, exports
+│   ├── widget-builder/        # WidgetBuilder CRUD, query service, 18 chart types
+│   ├── qbe/                   # QBE (Query By Example) — raw SQL, 7 chart types
 │   ├── parameters/            # Dynamic param tables — CRUD + Excel export
 │   └── node-definition/       # Dynamic node definition tables — CRUD + Excel export
 └── shared/                    # Global: constants, DTOs, enums, events, filters, helpers,
@@ -158,6 +161,17 @@ PUT `/:id` `/rename` `/favorite/:id` `/transfer/ownership`
 DELETE `/:id`
 GET `/export/csv/:reportId/:status/:fromdate/:todate/:interval` `/export/json/...` `/export/html/...` `/export/pdf/...` `/export/png/...` `/export/jpeg/...` `/export/excel/...`
 GET `/export/tab/html/:reportId/:status/:chartId/:fromdate/:todate/:interval` `/export/tab/pdf/...` `/export/tab/png/...` `/export/tab/jpeg/...`
+
+### Widget Builder (`api/v1/widgetbuilder`) — all JWT + PrivilegeGuard
+GET `/privileges/tables` `/` `/:id` `/shared/:id` `/closetab/:widgetBuilderId/:chartId`
+POST `/` `/:id/share` `/shared/:id` `/generate/tabular` `/generate/pie` `/generate/doughnut` `/generate/trend` `/generate/bar/vertical` `/generate/bar/horizontal` `/generate/progress` `/generate/progress/exploded` `/generate/counter` `/generate/counter/exploded` `/generate/percentage` `/generate/percentage/exploded` `/generate/compare-trend` `/generate/solo-bar` `/generate/top-bar` `/generate/table` `/generate/top-least-table` `/generate/cumulative-table`
+PUT `/:id` `/rename` `/favorite/:id` `/transfer/ownership`
+DELETE `/:id`
+
+### QBE (`api/v1/qbe`) — all JWT + PrivilegeGuard
+GET `/tables` `/shared/:id` `/:id`
+POST `/` `/shared/:id` `/run` `/generate/pie` `/generate/doughnut` `/generate/trend` `/generate/bar/vertical` `/generate/bar/horizontal` `/generate/progress` `/generate/progress/exploded`
+PUT `/:id`
 
 ### Health (`/health`) — Public
 DB ping, Redis ping, Memory heap 256MB
