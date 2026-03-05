@@ -17,6 +17,7 @@ import { LegacyDataDbService } from '../../database/legacy-data-db/legacy-data-d
 import { DateHelperService } from '../../shared/services/date-helper.service';
 import { ErrorMessages } from '../../shared/constants/error-messages';
 import { WidgetBuilderQueryService } from './services/widget-builder-query.service';
+import { QueryBuilderService } from '../reports/services/query-builder.service';
 
 // ─── Mock Factories ─────────────────────────────────────────────────────────
 
@@ -65,6 +66,11 @@ const mockConfigService = {
 };
 
 const mockWbQueryService = {
+  generateWidgetBuilderQuery: jest.fn(),
+};
+
+const mockQueryBuilderService = {
+  generate: jest.fn(),
   generateWidgetBuilderQuery: jest.fn(),
 };
 
@@ -125,6 +131,7 @@ describe('WidgetBuilderService', () => {
         { provide: DateHelperService, useValue: mockDateHelper },
         { provide: ConfigService, useValue: mockConfigService },
         { provide: WidgetBuilderQueryService, useValue: mockWbQueryService },
+        { provide: QueryBuilderService, useValue: mockQueryBuilderService },
       ],
     }).compile();
 

@@ -17,8 +17,16 @@ import { DateHelperService } from '../../shared/services/date-helper.service';
 import { ErrorMessages } from '../../shared/constants/error-messages';
 import { AvailableRoles } from '../../shared/enums/roles.enum';
 import { FETCH_WIDGETCHART_DB_FUNCTION, FETCH_CHART_DB_FUNCTION } from '../reports/constants';
-import { ChartStatus } from '../reports/enums';
+import { ChartTypes, ChartStatus } from '../reports/enums';
 import { IChartData, ITabularHeader } from '../reports/dto/report-interfaces';
+import { QueryBuilderService, GenerateResultDto } from '../reports/services/query-builder.service';
+import { GenerateReportDto } from '../reports/dto/generate-report.dto';
+import { generatePie } from '../reports/charts/pie.chart';
+import { generateDoughnut } from '../reports/charts/doughnut.chart';
+import { generateVerticalBar } from '../reports/charts/vertical-bar.chart';
+import { generateHorizontalBar } from '../reports/charts/horizontal-bar.chart';
+import { generateProgress } from '../reports/charts/progress.chart';
+import { generateExplodedProgress } from '../reports/charts/exploded-progress.chart';
 import { isEmptyString } from '../../shared/helpers/common.helper';
 import {
   SaveWidgetBuilderDto,
@@ -35,6 +43,20 @@ import {
   SideTablesDto,
 } from './dto/widget-builder-response.dto';
 import { WidgetBuilderQueryService } from './services/widget-builder-query.service';
+import { GenerateChartByTypeDto } from './dto/generate-chart-by-type.dto';
+import {
+  generateWidgetCounter,
+  generateWidgetExplodedCounter,
+  generateWidgetPercentage,
+  generateWidgetExplodedPercentage,
+  generateWidgetSoloBar,
+  generateWidgetTopBar,
+  generateWidgetTabular,
+  generateWidgetTopLeastTable,
+  generateWidgetCumulativeTable,
+  generateWidgetTrend,
+  generateWidgetCompareTrend,
+} from './charts';
 
 /** Module table type filter matching v3 ModuleTableTypes.STATISTICS */
 const TABLE_TYPE_STATISTICS = 'statistics';
@@ -87,6 +109,7 @@ export class WidgetBuilderService {
     private readonly configService: ConfigService,
     private readonly dataSource: DataSource,
     private readonly wbQueryService: WidgetBuilderQueryService,
+    private readonly queryBuilderService: QueryBuilderService,
   ) {
     this.coreDbName = this.configService.get<string>('coreDbName', '`iMonitorV3_1`');
   }
@@ -176,6 +199,244 @@ export class WidgetBuilderService {
     }
 
     return { header: [], body: [] };
+  }
+
+  /**
+   * Generate a chart by type for a widget builder.
+   * Fetches the WB config + chart from DB, builds query, dispatches to correct
+   * chart generator based on chart.type. Mirrors v3 generateChartByType().
+   */
+  async generateChartByType(body: GenerateChartByTypeDto): Promise<IChartData> {
+    const wb = await this.widgetBuilderRepo.findOne({
+      where: { id: body.widgetBuilderId },
+    });
+    if (!wb) {
+      throw new NotFoundException(ErrorMessages.WIDGET_BUILDER_NOT_FOUND);
+    }
+
+    const chart = await this.chartsRepo.findOne({
+      where: { id: body.chartId, widgetBuilderId: body.widgetBuilderId },
+    });
+    if (!chart) {
+      throw new NotFoundException(ErrorMessages.CHART_NOT_FOUND);
+    }
+
+    const tabularObject: GenerateWidgetBuilderDto = {
+      limit: wb.limit ?? undefined,
+      tables: safeJsonParse(wb.tables) || [],
+      globalFilter: safeJsonParse(wb.globalFilter) || { condition: 'AND', rules: [] },
+      orderBy: safeJsonParse(wb.orderBy) || [],
+      control: safeJsonParse(wb.control) || [],
+      operation: safeJsonParse(wb.operation) || [],
+      compare: safeJsonParse(wb.compare) || [],
+      priority: safeJsonParse(wb.priority) || [],
+      inclusion: safeJsonParse(wb.inclusion) || [],
+    };
+
+    const chartObject = JSON.parse(chart.data) as IChartData;
+    const chartType = chart.type as ChartTypes;
+
+    return this.dispatchChart(chartType, tabularObject, chartObject);
+  }
+
+  /**
+   * Dispatch chart generation to the correct chart generator function.
+   * Called both by generateChartByType (DB-driven) and by individual
+   * controller chart endpoints (body-driven).
+   */
+  async dispatchChart(
+    chartType: ChartTypes,
+    tabularObject: GenerateWidgetBuilderDto,
+    chartObject: IChartData,
+  ): Promise<IChartData> {
+    // Shared report charts + WB-only simple charts all need the generateResult first
+    const needsGenerateResult = [
+      ChartTypes.PIE, ChartTypes.DOUGHNUT,
+      ChartTypes.VERTICAL_BAR, ChartTypes.HORIZONTAL_BAR,
+      ChartTypes.PROGRESS, ChartTypes.EXPLODED_PROGRESS,
+      ChartTypes.COUNTER, ChartTypes.EXPLODED_COUNTER,
+      ChartTypes.PERCENTAGE, ChartTypes.EXPLODED_PERCENTAGE,
+      ChartTypes.SOLO_BAR, ChartTypes.TOP_LEAST_BAR,
+      ChartTypes.TABULAR, ChartTypes.TOP_LEAST_TABULAR,
+      ChartTypes.TABLE,
+    ];
+
+    let generateResult: GenerateResultDto | undefined;
+    if (needsGenerateResult.includes(chartType)) {
+      generateResult = await this.wbQueryService.generateWidgetBuilderQuery(tabularObject);
+    }
+
+    const dateObject = { fromDate: '', toDate: '' };
+
+    switch (chartType) {
+      // --- Shared report charts (reuse from Reports module) ---
+      case ChartTypes.PIE:
+        return generatePie(
+          { query: generateResult!.query, fieldsArray: generateResult!.fieldsArray, tables: tabularObject.tables, operation: tabularObject.operation },
+          chartObject, dateObject, this.legacyDataDb, this.dateHelper, this.coreDbName,
+        );
+
+      case ChartTypes.DOUGHNUT:
+        return generateDoughnut(
+          { query: generateResult!.query, fieldsArray: generateResult!.fieldsArray, tables: tabularObject.tables, operation: tabularObject.operation },
+          chartObject, dateObject, this.legacyDataDb, this.dateHelper, this.coreDbName,
+        );
+
+      case ChartTypes.VERTICAL_BAR:
+        return generateVerticalBar(
+          { query: generateResult!.query, fieldsArray: generateResult!.fieldsArray, tables: tabularObject.tables, operation: tabularObject.operation },
+          chartObject, dateObject, tabularObject.compare, this.legacyDataDb, this.dateHelper, this.coreDbName,
+        );
+
+      case ChartTypes.HORIZONTAL_BAR:
+        return generateHorizontalBar(
+          { query: generateResult!.query, fieldsArray: generateResult!.fieldsArray, tables: tabularObject.tables, operation: tabularObject.operation },
+          chartObject, dateObject, tabularObject.compare, this.legacyDataDb, this.dateHelper, this.coreDbName,
+        );
+
+      case ChartTypes.PROGRESS:
+        return generateProgress(
+          { query: generateResult!.query, fieldsArray: generateResult!.fieldsArray, tables: tabularObject.tables, operation: tabularObject.operation },
+          chartObject, dateObject, this.legacyDataDb, this.dateHelper, this.coreDbName,
+        ) as unknown as Promise<IChartData>;
+
+      case ChartTypes.EXPLODED_PROGRESS:
+        return generateExplodedProgress(
+          { query: generateResult!.query, fieldsArray: generateResult!.fieldsArray, tables: tabularObject.tables, operation: tabularObject.operation },
+          chartObject, dateObject, this.legacyDataDb, this.dateHelper, this.coreDbName,
+        ) as unknown as Promise<IChartData>;
+
+      // --- WB-only simple charts ---
+      case ChartTypes.COUNTER:
+        return generateWidgetCounter(
+          { query: generateResult!.query, fieldsArray: generateResult!.fieldsArray, header: generateResult!.header },
+          chartObject, this.legacyDataDb, this.dateHelper, this.coreDbName,
+        );
+
+      case ChartTypes.EXPLODED_COUNTER:
+        return generateWidgetExplodedCounter(
+          { query: generateResult!.query, fieldsArray: generateResult!.fieldsArray },
+          chartObject, this.legacyDataDb, this.dateHelper, this.coreDbName,
+        );
+
+      case ChartTypes.PERCENTAGE:
+        return generateWidgetPercentage(
+          { query: generateResult!.query, fieldsArray: generateResult!.fieldsArray, tables: tabularObject.tables, operation: tabularObject.operation },
+          chartObject, this.legacyDataDb, this.dateHelper, this.coreDbName,
+        );
+
+      case ChartTypes.EXPLODED_PERCENTAGE:
+        return generateWidgetExplodedPercentage(
+          { query: generateResult!.query, fieldsArray: generateResult!.fieldsArray, tables: tabularObject.tables, operation: tabularObject.operation },
+          chartObject, this.legacyDataDb, this.dateHelper, this.coreDbName,
+        );
+
+      case ChartTypes.SOLO_BAR:
+        return generateWidgetSoloBar(
+          { query: generateResult!.query, fieldsArray: generateResult!.fieldsArray },
+          chartObject, this.legacyDataDb, this.dateHelper, this.coreDbName,
+        );
+
+      case ChartTypes.TOP_LEAST_BAR:
+        return generateWidgetTopBar(
+          { query: generateResult!.query, fieldsArray: generateResult!.fieldsArray, tables: tabularObject.tables, operation: tabularObject.operation },
+          chartObject, this.legacyDataDb, this.dateHelper, this.coreDbName,
+        );
+
+      case ChartTypes.TABULAR:
+      case ChartTypes.TABLE:
+        return generateWidgetTabular(
+          { query: generateResult!.query, fieldsArray: generateResult!.fieldsArray, header: generateResult!.header, tables: tabularObject.tables, operation: tabularObject.operation },
+          chartObject, tabularObject.orderBy, this.legacyDataDb, this.dateHelper, this.coreDbName,
+        );
+
+      case ChartTypes.TOP_LEAST_TABULAR:
+        return generateWidgetTopLeastTable(
+          { query: generateResult!.query, fieldsArray: generateResult!.fieldsArray, header: generateResult!.header, tables: tabularObject.tables, operation: tabularObject.operation },
+          chartObject, this.legacyDataDb, this.dateHelper, this.coreDbName,
+        );
+
+      // --- WB-only complex charts (handle query generation internally) ---
+      case ChartTypes.CUMULATIVE_TABLE:
+        return generateWidgetCumulativeTable(
+          { tables: tabularObject.tables, orderBy: tabularObject.orderBy, operation: tabularObject.operation, timeFilter: tabularObject.timeFilter },
+          chartObject,
+          {
+            legacyDataDb: this.legacyDataDb,
+            dateHelper: this.dateHelper,
+            coreDbName: this.coreDbName,
+            generateReport: (dto, maxInterval, timeFilter, dateFormat, converter) =>
+              this.queryBuilderService.generate(dto, maxInterval, timeFilter, dateFormat, converter),
+            getRefTableId: () => this.getRefTableId(),
+            getDateFieldForTable: (tableId) => this.getDateFieldForTable(tableId),
+          },
+        );
+
+      case ChartTypes.WIDGET_BUILDER_TREND:
+        return generateWidgetTrend(
+          { tables: tabularObject.tables, compare: tabularObject.compare, operation: tabularObject.operation, timeFilter: tabularObject.timeFilter },
+          chartObject,
+          {
+            legacyDataDb: this.legacyDataDb,
+            dateHelper: this.dateHelper,
+            coreDbName: this.coreDbName,
+            generateReport: (dto, maxInterval, timeFilter, dateFormat, converter) =>
+              this.queryBuilderService.generate(dto, maxInterval, timeFilter, dateFormat, converter),
+            getRefTableId: () => this.getRefTableId(),
+            getDateFieldForTable: (tableId) => this.getDateFieldForTable(tableId),
+          },
+        );
+
+      case ChartTypes.COMPARE_TREND:
+        return generateWidgetCompareTrend(
+          {
+            tables: tabularObject.tables,
+            compare: tabularObject.compare,
+            operation: tabularObject.operation,
+            control: tabularObject.control,
+            priority: tabularObject.priority,
+            inclusion: tabularObject.inclusion,
+            timeFilter: tabularObject.timeFilter,
+          },
+          chartObject,
+          {
+            legacyDataDb: this.legacyDataDb,
+            dateHelper: this.dateHelper,
+            coreDbName: this.coreDbName,
+            generateReport: (dto, maxInterval, timeFilter, dateFormat, converter) =>
+              this.queryBuilderService.generate(dto, maxInterval, timeFilter, dateFormat, converter),
+            getRefTableId: () => this.getRefTableId(),
+            getDateFieldForTable: (tableId) => this.getDateFieldForTable(tableId),
+          },
+        );
+
+      default:
+        throw new BadRequestException(`Unsupported chart type: ${chartType}`);
+    }
+  }
+
+  /**
+   * Get the refTable ID from core_modules_tables.
+   */
+  private async getRefTableId(): Promise<string> {
+    const result: Array<{ id: string }> = await this.dataSource.query(
+      'SELECT id FROM core_modules_tables WHERE tableName = ? AND tableType = ? LIMIT 1',
+      [REF_TABLE_KEY, TABLE_TYPE_STATISTICS],
+    );
+    return result.length > 0 ? result[0].id : '';
+  }
+
+  /**
+   * Get the datetime field info for a table.
+   */
+  private async getDateFieldForTable(
+    tableId: string,
+  ): Promise<{ id: string; columnName: string; columnDisplayName: string } | null> {
+    const result: Array<{ id: string; columnName: string; columnDisplayName: string }> = await this.dataSource.query(
+      'SELECT id, columnName, columnDisplayName FROM core_tables_field WHERE tId = ? AND type = ? LIMIT 1',
+      [tableId, 'datetime'],
+    );
+    return result.length > 0 ? result[0] : null;
   }
 
   // --- CRUD ---

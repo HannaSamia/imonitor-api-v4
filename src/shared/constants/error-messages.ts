@@ -67,6 +67,11 @@ export const ErrorMessages = {
   CHART_HOT_KEY_ERROR: 'Error during text transformation process',
   CHART_GENERATE_ERROR: 'error generating the charts',
 
+  // Widget Builder errors (preserving v3 messages for backward compat)
+  WIDGET_BUILDER_NOT_FOUND: 'Widget builder does not exist',
+  SHARED_WIDGET_BUILDER_NOT_FOUND: 'Shared widget builder does not exist',
+  CHART_NOT_FOUND: 'Report chart does not exist',
+
   // Generic errors (preserving v3 typo for backward compat)
   ERROR_OCCURED: 'an error occured!',
   NOT_FOUND: 'You are lost',
