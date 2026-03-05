@@ -4,18 +4,22 @@
   "type": "feature",
   "status": "in_progress",
   "created": "2026-03-04T00:00:00.000Z",
-  "updated": "2026-03-05T12:22:00.000Z",
-  "current_phase": 2,
-  "current_task": "2.6",
+  "updated": "2026-03-05T12:42:00.000Z",
+  "current_phase": 3,
+  "current_task": "3.1",
   "phases": {
     "total": 4,
-    "completed": 1
+    "completed": 2
   },
   "tasks": {
     "total": 33,
-    "completed": 14
+    "completed": 18
   },
   "commits": [
-    "c2b7bc6: feat: add widget-builder chart generators (counter, percentage, bar, table, trend)"
+    "c2b7bc6: feat: add widget-builder chart generators (counter, percentage, bar, table, trend)",
+    "b58ec51: feat: wire WidgetBuilderService.executeQuery() with query service and DB execution",
+    "6159802: feat: implement generateChartByType() dispatcher for all 19 chart types",
+    "904dd4c: feat: wire 18 POST /generate/* chart endpoints on WidgetBuilderController",
+    "503db48: test: add unit tests for WB generate endpoints, executeQuery, generateChartByType"
   ]
 }
