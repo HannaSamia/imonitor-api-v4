@@ -36,10 +36,10 @@ Port `generateWIdgetBuilder()` into a dedicated `WidgetBuilderQueryService` and 
 
 ### Tasks
 
-- [ ] Task 2.1: Create `WidgetBuilderQueryService` under `src/modules/widget-builder/services/` — port `generateWIdgetBuilder()` from v3 `queryBuilder.service.ts` (lines 2700-3100)
-- [ ] Task 2.2: Port `widgetBuilderTableUpdate()` method — different from Reports' `TableUpdate()`, checks statInterval compatibility across tables
-- [ ] Task 2.3: Port `IntervalAdjustment()` helper — returns adjusted fromDate based on table statInterval and startTime (no time filter dimension switching like Reports)
-- [ ] Task 2.4: Port `ProcessWidgetBuilderFieldsByType()` — field processing for widget-specific logic
+- [x] Task 2.1: Create `WidgetBuilderQueryService` under `src/modules/widget-builder/services/` — port `generateWIdgetBuilder()` from v3 `queryBuilder.service.ts` (lines 2700-3100)
+- [x] Task 2.2: Port `widgetBuilderTableUpdate()` method — different from Reports' `TableUpdate()`, checks statInterval compatibility across tables
+- [x] Task 2.3: Port `IntervalAdjustment()` helper — returns adjusted fromDate based on table statInterval and startTime (no time filter dimension switching like Reports)
+- [x] Task 2.4: Port `ProcessWidgetBuilderFieldsByType()` — field processing for widget-specific logic
 - [ ] Task 2.5: Add new chart generator functions for WidgetBuilder-only chart types not in Reports: `counter`, `exploded-counter`, `percentage`, `exploded-percentage`, `compare-trend`, `solo-bar`, `top-bar`, `table`, `top-least-table`, `cumulative-table` — under `src/modules/widget-builder/charts/`
 - [ ] Task 2.6: Wire `WidgetBuilderService.executeQuery()` to use `WidgetBuilderQueryService.generateWidgetBuilderQuery()` + `LegacyDataDbService` for execution
 - [ ] Task 2.7: Implement `generateChartByType()` dispatcher — routes to correct chart generator based on chart type enum
