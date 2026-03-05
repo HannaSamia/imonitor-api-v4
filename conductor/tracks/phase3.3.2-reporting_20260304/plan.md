@@ -57,12 +57,12 @@ Implement the QBE module with its dedicated `QbeQueryService` for raw SQL valida
 
 ### Tasks
 
-- [ ] Task 3.1: Create `QbeModule` scaffold — module, controller, service files under `src/modules/qbe/`
-- [ ] Task 3.2: Create DTOs — `SaveQbeDto`, `UpdateQbeDto`, `ProcessQbeDto`, `QbeRunDto`, `QbeDto`, `QbeAutoCompleteTablesDto` with class-validator + @ApiProperty decorators
-- [ ] Task 3.3: Create `QbeQueryService` under `src/modules/qbe/services/` — raw SQL validation (SELECT only, block INSERT/UPDATE/DELETE/DROP/ALTER), date placeholder replacement (`_fromDate_`, `_toDate_`), table privilege verification via `modifyQuery()`
-- [ ] Task 3.4: Implement `QbeService` CRUD — `save()`, `update()`, `getById()`, `getSharedById()`, `saveSharedQbe()`. QBE stores in `core_report` table with `isQbe = true` flag + `core_shared_qbe_report` for sharing
-- [ ] Task 3.5: Implement `QbeService.generateQbe()` — calls `QbeQueryService.validateAndExecute()`, returns `QbeRunDto` with header, fields, body, processedQuery
-- [ ] Task 3.6: Implement `QbeService.privilegedStatisticTables()` — return available tables for QBE autocomplete
+- [x] Task 3.1: Create `QbeModule` scaffold — module, controller, service files under `src/modules/qbe/`
+- [x] Task 3.2: Create DTOs — `SaveQbeDto`, `UpdateQbeDto`, `ProcessQbeDto`, `QbeRunDto`, `QbeDto`, `QbeAutoCompleteTablesDto` with class-validator + @ApiProperty decorators
+- [x] Task 3.3: Create `QbeQueryService` under `src/modules/qbe/services/` — raw SQL validation (SELECT only, block INSERT/UPDATE/DELETE/DROP/ALTER), date placeholder replacement (`_fromDate_`, `_toDate_`), table privilege verification via `modifyQuery()`
+- [x] Task 3.4: Implement `QbeService` CRUD — `save()`, `update()`, `getById()`, `getSharedById()`, `saveSharedQbe()`. QBE stores in `core_report` table with `isQbe = true` flag + `core_shared_qbe_report` for sharing
+- [x] Task 3.5: Implement `QbeService.generateQbe()` — calls `QbeQueryService.validateAndExecute()`, returns `QbeRunDto` with header, fields, body, processedQuery
+- [x] Task 3.6: Implement `QbeService.privilegedStatisticTables()` — return available tables for QBE autocomplete
 - [ ] Task 3.7: Wire QBE chart generation — reuse chart generators from Reports (pie, doughnut, trend, vertical bar, horizontal bar, progress, exploded progress) with QBE data
 - [ ] Task 3.8: Wire controller — all 14 endpoints with Swagger decorators, guards, DTOs
 - [ ] Task 3.9: Unit tests for `QbeQueryService` (SQL validation edge cases), `QbeService`, controller, and DTOs
