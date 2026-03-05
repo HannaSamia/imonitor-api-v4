@@ -251,13 +251,20 @@ export class WidgetBuilderService {
   ): Promise<IChartData> {
     // Shared report charts + WB-only simple charts all need the generateResult first
     const needsGenerateResult = [
-      ChartTypes.PIE, ChartTypes.DOUGHNUT,
-      ChartTypes.VERTICAL_BAR, ChartTypes.HORIZONTAL_BAR,
-      ChartTypes.PROGRESS, ChartTypes.EXPLODED_PROGRESS,
-      ChartTypes.COUNTER, ChartTypes.EXPLODED_COUNTER,
-      ChartTypes.PERCENTAGE, ChartTypes.EXPLODED_PERCENTAGE,
-      ChartTypes.SOLO_BAR, ChartTypes.TOP_LEAST_BAR,
-      ChartTypes.TABULAR, ChartTypes.TOP_LEAST_TABULAR,
+      ChartTypes.PIE,
+      ChartTypes.DOUGHNUT,
+      ChartTypes.VERTICAL_BAR,
+      ChartTypes.HORIZONTAL_BAR,
+      ChartTypes.PROGRESS,
+      ChartTypes.EXPLODED_PROGRESS,
+      ChartTypes.COUNTER,
+      ChartTypes.EXPLODED_COUNTER,
+      ChartTypes.PERCENTAGE,
+      ChartTypes.EXPLODED_PERCENTAGE,
+      ChartTypes.SOLO_BAR,
+      ChartTypes.TOP_LEAST_BAR,
+      ChartTypes.TABULAR,
+      ChartTypes.TOP_LEAST_TABULAR,
       ChartTypes.TABLE,
     ];
 
@@ -272,94 +279,207 @@ export class WidgetBuilderService {
       // --- Shared report charts (reuse from Reports module) ---
       case ChartTypes.PIE:
         return generatePie(
-          { query: generateResult!.query, fieldsArray: generateResult!.fieldsArray, tables: tabularObject.tables, operation: tabularObject.operation },
-          chartObject, dateObject, this.legacyDataDb, this.dateHelper, this.coreDbName,
+          {
+            query: generateResult!.query,
+            fieldsArray: generateResult!.fieldsArray,
+            tables: tabularObject.tables,
+            operation: tabularObject.operation,
+          },
+          chartObject,
+          dateObject,
+          this.legacyDataDb,
+          this.dateHelper,
+          this.coreDbName,
         );
 
       case ChartTypes.DOUGHNUT:
         return generateDoughnut(
-          { query: generateResult!.query, fieldsArray: generateResult!.fieldsArray, tables: tabularObject.tables, operation: tabularObject.operation },
-          chartObject, dateObject, this.legacyDataDb, this.dateHelper, this.coreDbName,
+          {
+            query: generateResult!.query,
+            fieldsArray: generateResult!.fieldsArray,
+            tables: tabularObject.tables,
+            operation: tabularObject.operation,
+          },
+          chartObject,
+          dateObject,
+          this.legacyDataDb,
+          this.dateHelper,
+          this.coreDbName,
         );
 
       case ChartTypes.VERTICAL_BAR:
         return generateVerticalBar(
-          { query: generateResult!.query, fieldsArray: generateResult!.fieldsArray, tables: tabularObject.tables, operation: tabularObject.operation },
-          chartObject, dateObject, tabularObject.compare, this.legacyDataDb, this.dateHelper, this.coreDbName,
+          {
+            query: generateResult!.query,
+            fieldsArray: generateResult!.fieldsArray,
+            tables: tabularObject.tables,
+            operation: tabularObject.operation,
+          },
+          chartObject,
+          dateObject,
+          tabularObject.compare,
+          this.legacyDataDb,
+          this.dateHelper,
+          this.coreDbName,
         );
 
       case ChartTypes.HORIZONTAL_BAR:
         return generateHorizontalBar(
-          { query: generateResult!.query, fieldsArray: generateResult!.fieldsArray, tables: tabularObject.tables, operation: tabularObject.operation },
-          chartObject, dateObject, tabularObject.compare, this.legacyDataDb, this.dateHelper, this.coreDbName,
+          {
+            query: generateResult!.query,
+            fieldsArray: generateResult!.fieldsArray,
+            tables: tabularObject.tables,
+            operation: tabularObject.operation,
+          },
+          chartObject,
+          dateObject,
+          tabularObject.compare,
+          this.legacyDataDb,
+          this.dateHelper,
+          this.coreDbName,
         );
 
       case ChartTypes.PROGRESS:
         return generateProgress(
-          { query: generateResult!.query, fieldsArray: generateResult!.fieldsArray, tables: tabularObject.tables, operation: tabularObject.operation },
-          chartObject, dateObject, this.legacyDataDb, this.dateHelper, this.coreDbName,
+          {
+            query: generateResult!.query,
+            fieldsArray: generateResult!.fieldsArray,
+            tables: tabularObject.tables,
+            operation: tabularObject.operation,
+          },
+          chartObject,
+          dateObject,
+          this.legacyDataDb,
+          this.dateHelper,
+          this.coreDbName,
         ) as unknown as Promise<IChartData>;
 
       case ChartTypes.EXPLODED_PROGRESS:
         return generateExplodedProgress(
-          { query: generateResult!.query, fieldsArray: generateResult!.fieldsArray, tables: tabularObject.tables, operation: tabularObject.operation },
-          chartObject, dateObject, this.legacyDataDb, this.dateHelper, this.coreDbName,
+          {
+            query: generateResult!.query,
+            fieldsArray: generateResult!.fieldsArray,
+            tables: tabularObject.tables,
+            operation: tabularObject.operation,
+          },
+          chartObject,
+          dateObject,
+          this.legacyDataDb,
+          this.dateHelper,
+          this.coreDbName,
         ) as unknown as Promise<IChartData>;
 
       // --- WB-only simple charts ---
       case ChartTypes.COUNTER:
         return generateWidgetCounter(
           { query: generateResult!.query, fieldsArray: generateResult!.fieldsArray, header: generateResult!.header },
-          chartObject, this.legacyDataDb, this.dateHelper, this.coreDbName,
+          chartObject,
+          this.legacyDataDb,
+          this.dateHelper,
+          this.coreDbName,
         );
 
       case ChartTypes.EXPLODED_COUNTER:
         return generateWidgetExplodedCounter(
           { query: generateResult!.query, fieldsArray: generateResult!.fieldsArray },
-          chartObject, this.legacyDataDb, this.dateHelper, this.coreDbName,
+          chartObject,
+          this.legacyDataDb,
+          this.dateHelper,
+          this.coreDbName,
         );
 
       case ChartTypes.PERCENTAGE:
         return generateWidgetPercentage(
-          { query: generateResult!.query, fieldsArray: generateResult!.fieldsArray, tables: tabularObject.tables, operation: tabularObject.operation },
-          chartObject, this.legacyDataDb, this.dateHelper, this.coreDbName,
+          {
+            query: generateResult!.query,
+            fieldsArray: generateResult!.fieldsArray,
+            tables: tabularObject.tables,
+            operation: tabularObject.operation,
+          },
+          chartObject,
+          this.legacyDataDb,
+          this.dateHelper,
+          this.coreDbName,
         );
 
       case ChartTypes.EXPLODED_PERCENTAGE:
         return generateWidgetExplodedPercentage(
-          { query: generateResult!.query, fieldsArray: generateResult!.fieldsArray, tables: tabularObject.tables, operation: tabularObject.operation },
-          chartObject, this.legacyDataDb, this.dateHelper, this.coreDbName,
+          {
+            query: generateResult!.query,
+            fieldsArray: generateResult!.fieldsArray,
+            tables: tabularObject.tables,
+            operation: tabularObject.operation,
+          },
+          chartObject,
+          this.legacyDataDb,
+          this.dateHelper,
+          this.coreDbName,
         );
 
       case ChartTypes.SOLO_BAR:
         return generateWidgetSoloBar(
           { query: generateResult!.query, fieldsArray: generateResult!.fieldsArray },
-          chartObject, this.legacyDataDb, this.dateHelper, this.coreDbName,
+          chartObject,
+          this.legacyDataDb,
+          this.dateHelper,
+          this.coreDbName,
         );
 
       case ChartTypes.TOP_LEAST_BAR:
         return generateWidgetTopBar(
-          { query: generateResult!.query, fieldsArray: generateResult!.fieldsArray, tables: tabularObject.tables, operation: tabularObject.operation },
-          chartObject, this.legacyDataDb, this.dateHelper, this.coreDbName,
+          {
+            query: generateResult!.query,
+            fieldsArray: generateResult!.fieldsArray,
+            tables: tabularObject.tables,
+            operation: tabularObject.operation,
+          },
+          chartObject,
+          this.legacyDataDb,
+          this.dateHelper,
+          this.coreDbName,
         );
 
       case ChartTypes.TABULAR:
       case ChartTypes.TABLE:
         return generateWidgetTabular(
-          { query: generateResult!.query, fieldsArray: generateResult!.fieldsArray, header: generateResult!.header, tables: tabularObject.tables, operation: tabularObject.operation },
-          chartObject, tabularObject.orderBy, this.legacyDataDb, this.dateHelper, this.coreDbName,
+          {
+            query: generateResult!.query,
+            fieldsArray: generateResult!.fieldsArray,
+            header: generateResult!.header,
+            tables: tabularObject.tables,
+            operation: tabularObject.operation,
+          },
+          chartObject,
+          tabularObject.orderBy,
+          this.legacyDataDb,
+          this.dateHelper,
+          this.coreDbName,
         );
 
       case ChartTypes.TOP_LEAST_TABULAR:
         return generateWidgetTopLeastTable(
-          { query: generateResult!.query, fieldsArray: generateResult!.fieldsArray, header: generateResult!.header, tables: tabularObject.tables, operation: tabularObject.operation },
-          chartObject, this.legacyDataDb, this.dateHelper, this.coreDbName,
+          {
+            query: generateResult!.query,
+            fieldsArray: generateResult!.fieldsArray,
+            header: generateResult!.header,
+            tables: tabularObject.tables,
+            operation: tabularObject.operation,
+          },
+          chartObject,
+          this.legacyDataDb,
+          this.dateHelper,
+          this.coreDbName,
         );
 
       // --- WB-only complex charts (handle query generation internally) ---
       case ChartTypes.CUMULATIVE_TABLE:
         return generateWidgetCumulativeTable(
-          { tables: tabularObject.tables, orderBy: tabularObject.orderBy, operation: tabularObject.operation, timeFilter: tabularObject.timeFilter },
+          {
+            tables: tabularObject.tables,
+            orderBy: tabularObject.orderBy,
+            operation: tabularObject.operation,
+            timeFilter: tabularObject.timeFilter,
+          },
           chartObject,
           {
             legacyDataDb: this.legacyDataDb,
@@ -374,7 +494,12 @@ export class WidgetBuilderService {
 
       case ChartTypes.WIDGET_BUILDER_TREND:
         return generateWidgetTrend(
-          { tables: tabularObject.tables, compare: tabularObject.compare, operation: tabularObject.operation, timeFilter: tabularObject.timeFilter },
+          {
+            tables: tabularObject.tables,
+            compare: tabularObject.compare,
+            operation: tabularObject.operation,
+            timeFilter: tabularObject.timeFilter,
+          },
           chartObject,
           {
             legacyDataDb: this.legacyDataDb,

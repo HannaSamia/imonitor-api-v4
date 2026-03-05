@@ -690,18 +690,18 @@ describe('WidgetBuilderService', () => {
     it('should throw NotFoundException when widget builder not found', async () => {
       wbRepo.findOne.mockResolvedValue(null);
 
-      await expect(
-        service.generateChartByType({ widgetBuilderId: 'bad-id', chartId: TEST_CHART_ID }),
-      ).rejects.toThrow(NotFoundException);
+      await expect(service.generateChartByType({ widgetBuilderId: 'bad-id', chartId: TEST_CHART_ID })).rejects.toThrow(
+        NotFoundException,
+      );
     });
 
     it('should throw NotFoundException when chart not found', async () => {
       wbRepo.findOne.mockResolvedValue(MOCK_DB_WB);
       chartsRepo.findOne.mockResolvedValue(null);
 
-      await expect(
-        service.generateChartByType({ widgetBuilderId: TEST_WB_ID, chartId: 'bad-chart' }),
-      ).rejects.toThrow(NotFoundException);
+      await expect(service.generateChartByType({ widgetBuilderId: TEST_WB_ID, chartId: 'bad-chart' })).rejects.toThrow(
+        NotFoundException,
+      );
     });
   });
 });

@@ -170,7 +170,14 @@ describe('WidgetBuilderController', () => {
 
   // ─── Chart Generation ────────────────────────────────────────────────
 
-  const MOCK_TABULAR = { tables: [], globalFilter: { condition: 'AND', rules: [] }, orderBy: [], control: [], operation: [], compare: [] } as any;
+  const MOCK_TABULAR = {
+    tables: [],
+    globalFilter: { condition: 'AND', rules: [] },
+    orderBy: [],
+    control: [],
+    operation: [],
+    compare: [],
+  } as any;
   const MOCK_CHART = { id: CHART_ID, type: 'pie', options: {} } as any;
 
   describe('executeQuery', () => {
@@ -209,10 +216,13 @@ describe('WidgetBuilderController', () => {
       { method: 'cumulativeTable', chartType: 'cumulative_table' },
     ];
 
-    it.each(chartEndpoints)('$method should dispatch to service with chart type $chartType', ({ method, chartType }) => {
-      const dto = { tabular: MOCK_TABULAR, chart: MOCK_CHART };
-      (controller as any)[method](dto);
-      expect(mockWidgetBuilderService.dispatchChart).toHaveBeenCalledWith(chartType, MOCK_TABULAR, MOCK_CHART);
-    });
+    it.each(chartEndpoints)(
+      '$method should dispatch to service with chart type $chartType',
+      ({ method, chartType }) => {
+        const dto = { tabular: MOCK_TABULAR, chart: MOCK_CHART };
+        (controller as any)[method](dto);
+        expect(mockWidgetBuilderService.dispatchChart).toHaveBeenCalledWith(chartType, MOCK_TABULAR, MOCK_CHART);
+      },
+    );
   });
 });
