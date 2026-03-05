@@ -11,7 +11,12 @@ import { DateHelperService } from '../../shared/services/date-helper.service';
 import { ErrorMessages } from '../../shared/constants/error-messages';
 import { FETCH_CHART_DB_FUNCTION } from '../reports/constants';
 import { ChartStatus } from '../reports/enums';
-import { IChartData, IReportOptions, IFieldsArrayEntry, ICustomOperationColumn } from '../reports/dto/report-interfaces';
+import {
+  IChartData,
+  IReportOptions,
+  IFieldsArrayEntry,
+  ICustomOperationColumn,
+} from '../reports/dto/report-interfaces';
 import { DateFormats } from '../reports/services/query-builder.service';
 import {
   generatePie as generatePieChart,
