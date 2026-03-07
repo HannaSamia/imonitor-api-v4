@@ -67,6 +67,13 @@ export const ErrorMessages = {
   CHART_HOT_KEY_ERROR: 'Error during text transformation process',
   CHART_GENERATE_ERROR: 'error generating the charts',
 
+  // Dashboard errors (preserving v3 dashboardErrorMessages)
+  DASHBOARD_DOES_NOT_EXIST: 'Dashboard does not exist',
+  SHARED_DAHBOARD_DOES_NOT_EXIST: 'Shared Dashboard does not exist',
+  DASHBOARD_NOT_DEFAULT: 'Dashboard is not a default dashboard',
+  IDS_NOT_MATCHING: 'Ids are not matching',
+  ERROR_SAVE: 'Error occured durring the save process',
+
   // Widget Builder errors (preserving v3 messages for backward compat)
   WIDGET_BUILDER_NOT_FOUND: 'Widget builder does not exist',
   SHARED_WIDGET_BUILDER_NOT_FOUND: 'Shared widget builder does not exist',
