@@ -67,6 +67,25 @@ export const ErrorMessages = {
   CHART_HOT_KEY_ERROR: 'Error during text transformation process',
   CHART_GENERATE_ERROR: 'error generating the charts',
 
+  // Dashboard errors (preserving v3 dashboardErrorMessages)
+  DASHBOARD_DOES_NOT_EXIST: 'Dashboard does not exist',
+  SHARED_DAHBOARD_DOES_NOT_EXIST: 'Shared Dashboard does not exist',
+  DASHBOARD_NOT_DEFAULT: 'Dashboard is not a default dashboard',
+  IDS_NOT_MATCHING: 'Ids are not matching',
+  ERROR_SAVE: 'Error occured durring the save process',
+
+  // Rotating dashboard errors (preserving v3 rotatingDashboardErrorMessages)
+  ROTATING_DASHBOARD_DOES_NOT_EXIST: 'Rotating dashboard does not exist',
+  CANNOT_SHARE_ROTATING_CONTAINING_SHARED: "you can't share a rotating dashboard containing shared dashboard",
+  ROTATING_DASHBOARD_SUCCESSFULLY_DELETED: 'Rotating dashboard successfully deleted.',
+
+  // Data analysis errors (preserving v3 dataAnalysisErrorMessages)
+  DATA_ANALYSIS_DOES_NOT_EXIST: 'Data analysis does not exist',
+  SHARED_DATA_ANALYSIS_DOES_NOT_EXIST: 'Shared Data analysis does not exist',
+  INVALID_DATA_ANALYSIS_STATUS: 'Invalid data analysis status',
+  DATA_ANALYSIS_NOT_DEFAULT: "This data Analysis isn't default",
+  DUPLICATE_CHART_ERROR: 'Error while creating the charts',
+
   // Widget Builder errors (preserving v3 messages for backward compat)
   WIDGET_BUILDER_NOT_FOUND: 'Widget builder does not exist',
   SHARED_WIDGET_BUILDER_NOT_FOUND: 'Shared widget builder does not exist',

@@ -15,6 +15,7 @@ import { CoreApplicationUsers } from '../../database/entities/core-application-u
 import { LegacyDataDbService } from '../../database/legacy-data-db/legacy-data-db.service';
 import { DateHelperService } from '../../shared/services/date-helper.service';
 import { ErrorMessages } from '../../shared/constants/error-messages';
+import { DEFAULT_ADMIN_ID } from '../../shared/constants/auth.constants';
 import { AvailableRoles } from '../../shared/enums/roles.enum';
 import { FETCH_WIDGETCHART_DB_FUNCTION, FETCH_CHART_DB_FUNCTION } from '../reports/constants';
 import { ChartTypes, ChartStatus } from '../reports/enums';
@@ -63,9 +64,6 @@ const TABLE_TYPE_STATISTICS = 'statistics';
 
 /** Ref table key matching v3 REF_TABLE_KEY */
 const REF_TABLE_KEY = 'refTable';
-
-/** Default admin userId matching v3 DEFAULT_ADMIN_ID */
-const DEFAULT_ADMIN_ID = '0';
 
 /**
  * Safely parse a JSON string, returning null if input is null/undefined or malformed.
@@ -1468,6 +1466,138 @@ export class WidgetBuilderService {
     const refTable = refResult[0];
     const fieldResult = await this.fetchTableFields(refTable.id, refTable.role, 0);
     return { ...refTable, fields: fieldResult.fields };
+  }
+
+  // --- Duplication (used by DashboardModule) ---
+
+  /**
+   * Duplicate a widget builder: create a full copy with new UUIDs for the WB
+   * and all its charts, copying module associations and used tables.
+   * Returns the new WB ID and a mapping of old chart IDs → new chart IDs.
+   * Mirrors v3 duplicate().
+   */
+  async duplicate(
+    widgetBuilderId: string,
+    userId: string,
+  ): Promise<{ widgetBuilderId: string; charts: Record<string, string> } | null> {
+    const original = await this.widgetBuilderRepo.findOne({
+      where: { id: widgetBuilderId },
+    });
+    if (!original) {
+      return null;
+    }
+
+    const originalCharts = await this.chartsRepo.find({
+      where: { widgetBuilderId },
+    });
+
+    const originalModules = await this.wbModuleRepo.find({
+      where: { widgetBuilderId },
+      select: { moduleId: true },
+    });
+
+    const originalUsedTables = await this.usedTablesRepo.find({
+      where: { widgetBuilderId },
+    });
+
+    const newId = v4();
+    const result: { widgetBuilderId: string; charts: Record<string, string> } = {
+      widgetBuilderId: newId,
+      charts: {},
+    };
+
+    try {
+      // Insert new widget builder with copied fields
+      await this.widgetBuilderRepo.insert({
+        id: newId,
+        name: original.name,
+        limit: original.limit,
+        tables: original.tables,
+        control: original.control,
+        compare: original.compare,
+        operation: original.operation,
+        globalFilter: original.globalFilter,
+        orderBy: original.orderBy,
+        options: original.options,
+        inclusion: original.inclusion,
+        priority: original.priority,
+        globalOrderIndex: original.globalOrderIndex,
+        ownerId: userId,
+        createdAt: this.dateHelper.formatDate() as unknown as Date,
+      });
+
+      // Duplicate charts with new IDs
+      if (originalCharts.length > 0) {
+        const chartInserts = originalCharts.map((chart) => {
+          const newChartId = v4();
+          result.charts[chart.id] = newChartId;
+
+          // Copy data as-is; strip notifications for non-trend/pie types (matching v3)
+          const dataObj = safeJsonParse<Record<string, unknown>>(chart.data) || {};
+          if (
+            chart.type !== ChartTypes.COMPARE_TREND &&
+            chart.type !== ChartTypes.TREND &&
+            chart.type !== ChartTypes.PIE
+          ) {
+            delete dataObj['notifications'];
+          }
+
+          return {
+            id: newChartId,
+            name: chart.name,
+            type: chart.type,
+            orderIndex: chart.orderIndex,
+            data: JSON.stringify(dataObj),
+            notification: '{}',
+            createdAt: this.dateHelper.formatDate() as unknown as Date,
+            createdBy: userId,
+            widgetBuilderId: newId,
+          };
+        });
+        await this.chartsRepo.insert(chartInserts);
+      }
+
+      // Copy module associations
+      if (originalModules.length > 0) {
+        const moduleInserts = originalModules.map((m) => ({
+          widgetBuilderId: newId,
+          moduleId: m.moduleId,
+        }));
+        await this.wbModuleRepo.insert(moduleInserts);
+      }
+
+      // Copy used tables
+      if (originalUsedTables.length > 0) {
+        const tableInserts = originalUsedTables.map((t) => ({
+          widgetBuilderId: newId,
+          tableId: t.tableId,
+          tableName: t.tableName,
+        }));
+        await this.usedTablesRepo.insert(tableInserts);
+      }
+
+      return result;
+    } catch (error) {
+      // Rollback: delete the partially created WB (cascades handle children)
+      await this.widgetBuilderRepo.delete({ id: newId });
+      this.logger.error('Error duplicating widget builder', error);
+      throw new BadRequestException(ErrorMessages.ERROR_WHILE_SAVING_WIDGETBUILDER);
+    }
+  }
+
+  /**
+   * Delete multiple widget builders by ID (rollback/cleanup utility).
+   * Used by DashboardService when saveShared/saveDefault fails mid-way.
+   * Mirrors v3 cleanWidgetBuilders().
+   */
+  async cleanWidgetBuilders(ids: string[]): Promise<void> {
+    for (const id of ids) {
+      try {
+        await this.widgetBuilderRepo.delete({ id });
+      } catch (error) {
+        this.logger.warn(`Failed to clean widget builder ${id}: ${(error as Error).message}`);
+      }
+    }
   }
 
   /**

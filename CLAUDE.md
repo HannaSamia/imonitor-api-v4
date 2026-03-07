@@ -15,7 +15,7 @@ NestJS migration of enterprise telecom monitoring API. Express.js v3 → NestJS 
 ```bash
 npm run build          # TypeScript compilation — MUST pass before commit
 npm run lint           # ESLint + Prettier — MUST pass before commit
-npm test               # Jest unit tests — 611 tests, 32 suites
+npm test               # Jest unit tests — 734 tests, 41 suites
 npm run test:cov       # Coverage report
 npm run test:e2e       # E2E tests (scaffold only until Phase 5)
 ```
@@ -30,7 +30,7 @@ npm run test:e2e       # E2E tests (scaffold only until Phase 5)
 | 3.2: Core Features | `migration/phase-3.2-core-features` | Done | `v0.3.2-migration-phase3.2` |
 | 3.3.1: Reports | `migration/phase-3.3.1-reports` | Done | `v0.3.3.1-migration-phase3.3.1` |
 | 3.3.2: WidgetBuilder, QBE | `migration/phase-3.3.2-reporting` | Done | `v0.3.3.2-migration-phase3.3.2` |
-| 3.4: Dashboards | `migration/phase-3.4-dashboards` | Pending | — |
+| 3.4: Dashboards | `migration/phase-3.4-dashboards` | Done | `v0.3.4-migration-phase3.4` |
 | 3.5: Monitoring | `migration/phase-3.5-monitoring` | Pending | — |
 | 3.6: Customer Care | `migration/phase-3.6-customer-care` | Pending | — |
 | 3.7: Processing | `migration/phase-3.7-processing` | Pending | — |
@@ -85,6 +85,9 @@ src/
 │   ├── reports/               # Reports CRUD, query builder, chart generation, exports
 │   ├── widget-builder/        # WidgetBuilder CRUD, query service, 18 chart types
 │   ├── qbe/                   # QBE (Query By Example) — raw SQL, 7 chart types
+│   ├── dashboard/             # Dashboard CRUD, share, favorite, save default
+│   ├── rotating-dashboard/    # Rotating dashboard CRUD, share, favorite
+│   ├── data-analysis/         # Data analysis CRUD, share, exports (HTML/PDF/Excel)
 │   ├── parameters/            # Dynamic param tables — CRUD + Excel export
 │   └── node-definition/       # Dynamic node definition tables — CRUD + Excel export
 └── shared/                    # Global: constants, DTOs, enums, events, filters, helpers,
@@ -172,6 +175,23 @@ DELETE `/:id`
 GET `/tables` `/shared/:id` `/:id`
 POST `/` `/shared/:id` `/run` `/generate/pie` `/generate/doughnut` `/generate/trend` `/generate/bar/vertical` `/generate/bar/horizontal` `/generate/progress` `/generate/progress/exploded`
 PUT `/:id`
+
+### Dashboard (`api/v1/dashboard`) — all JWT + PrivilegeGuard
+POST `/` `/:dashboardId/share` `/shared/:id` `/default/:id`
+GET `/` `/open/:id` `/:id` `/shared/:id`
+PUT `/:id` `/favorite/:id`
+
+### Rotating Dashboard (`api/v1/rotatingdashboard`) — all JWT + PrivilegeGuard
+POST `/` `/:id/share` `/shared/:id`
+GET `/` `/:id` `/shared/:id`
+PUT `/:id` `/favorite/:id`
+DELETE `/:id`
+
+### Data Analysis (`api/v1/dataanalysis`) — all JWT + PrivilegeGuard
+POST `/` `/:dataAnalysisId/share` `/shared/:id` `/default/:id`
+GET `/` `/:id` `/shared/:id`
+PUT `/:id` `/favorite/:id`
+GET `/export/html/:id/:status/:fromdate/:todate/:interval` `/export/pdf/...` `/export/excel/...`
 
 ### Health (`/health`) — Public
 DB ping, Redis ping, Memory heap 256MB

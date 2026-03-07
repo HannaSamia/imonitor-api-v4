@@ -15,6 +15,7 @@ import { CoreApplicationUsers } from '../../database/entities/core-application-u
 import { LegacyDataDbService } from '../../database/legacy-data-db/legacy-data-db.service';
 import { DateHelperService } from '../../shared/services/date-helper.service';
 import { ErrorMessages } from '../../shared/constants/error-messages';
+import { DEFAULT_ADMIN_ID } from '../../shared/constants/auth.constants';
 import { ExportHelperService } from '../../shared/services/export-helper.service';
 import { AvailableRoles } from '../../shared/enums/roles.enum';
 import { FETCH_CHART_DB_FUNCTION, REPORT_TABLE_CHART_DEFAULT_VALUE, REPORT_TABLE_ID } from './constants';
@@ -27,7 +28,7 @@ import { generateVerticalBar as generateVerticalBarChart } from './charts/vertic
 import { generateHorizontalBar as generateHorizontalBarChart } from './charts/horizontal-bar.chart';
 import { generateProgress as generateProgressChart } from './charts/progress.chart';
 import { generateExplodedProgress as generateExplodedProgressChart } from './charts/exploded-progress.chart';
-import { deepCopy } from './charts/chart-helpers';
+import { deepCopy, emptyReportChartByType } from './charts/chart-helpers';
 import { exportReportHTMLScript } from './utils/export-html-templates';
 import {
   SaveReportDto,
@@ -51,9 +52,6 @@ const TABLE_TYPE_STATISTICS = 'statistics';
 
 /** Ref table key matching v3 REF_TABLE_KEY */
 const REF_TABLE_KEY = 'refTable';
-
-/** Default admin userId matching v3 DEFAULT_ADMIN_ID */
-const DEFAULT_ADMIN_ID = '0';
 
 /**
  * Safely parse a JSON string, returning null if input is null/undefined or malformed.
@@ -1553,6 +1551,150 @@ export class ReportsService {
 
       if (isAdminResult.length <= 0) {
         throw new BadRequestException(ErrorMessages.UNAUTHORIZED_ROLE);
+      }
+    }
+  }
+
+  // --- Duplication (used by DataAnalysis saveShared/saveDefault) ---
+
+  /**
+   * Duplicate a report: creates full copy with new UUID, copies charts with new IDs,
+   * copies module associations and used tables. Returns mapping of old→new chart IDs.
+   * Mirrors v3 duplicate() in report.service.ts.
+   */
+  async duplicate(
+    reportId: string,
+    userId: string,
+  ): Promise<{ reportId: string; charts: Record<string, string> } | null> {
+    const original = await this.reportRepo.findOne({ where: { id: reportId } });
+    if (!original) return null;
+
+    const id = v4();
+    const result: { reportId: string; charts: Record<string, string> } = {
+      reportId: id,
+      charts: {},
+    };
+
+    if (original.isQbe) {
+      // QBE report — simple copy without modules/used tables
+      await this.reportRepo.save({
+        id,
+        name: original.name,
+        timeFilter: original.timeFilter,
+        fromDate: original.fromDate,
+        toDate: original.toDate,
+        options: original.options,
+        ownerId: userId,
+        isQbe: 1,
+        globalOrderIndex: original.globalOrderIndex,
+        createdAt: new Date(),
+        sql: original.sql,
+      });
+    } else {
+      // Regular report — copy report + modules + used tables
+      const reportModules = await this.reportModuleRepo.find({
+        where: { reportId },
+        select: { moduleId: true },
+      });
+
+      const reportUsedTables = await this.reportUsedTableRepo.find({
+        where: { reportId },
+        select: { tableId: true, tableName: true },
+      });
+
+      // Check user privilege on each module
+      for (const mod of reportModules) {
+        const roleResult: Array<{ name: string }> = await this.dataSource.query(
+          `SELECT name FROM core_application_roles WHERE id =
+            (SELECT RoleId FROM core_privileges WHERE ModuleId = ? AND UserId = ?)`,
+          [mod.moduleId, userId],
+        );
+
+        if (roleResult.length === 0 || roleResult[0].name === AvailableRoles.DEFAULT) {
+          throw new BadRequestException(ErrorMessages.USER_NOT_PRIVILEGED_TO_SAVE);
+        }
+      }
+
+      await this.reportRepo.save({
+        id,
+        name: original.name,
+        fromDate: original.fromDate,
+        toDate: original.toDate,
+        timeFilter: original.timeFilter,
+        limit: original.limit,
+        tables: original.tables,
+        control: original.control,
+        compare: original.compare,
+        operation: original.operation,
+        globalFilter: original.globalFilter,
+        orderBy: original.orderBy,
+        options: original.options,
+        ownerId: userId,
+        createdAt: new Date(),
+      });
+
+      // Copy module associations
+      if (reportModules.length > 0) {
+        const moduleValues = reportModules.map((m) => [id, m.moduleId]);
+        await this.dataSource.query('INSERT INTO core_report_module (reportId, moduleId) VALUES ?', [moduleValues]);
+      }
+
+      // Copy used tables
+      if (reportUsedTables.length > 0) {
+        const tableValues = reportUsedTables.map((t) => [id, t.tableId, t.tableName]);
+        await this.dataSource.query('INSERT INTO core_report_used_table (reportId, tableId, tableName) VALUES ?', [
+          tableValues,
+        ]);
+      }
+    }
+
+    // Copy charts with new IDs
+    try {
+      const originalCharts = await this.chartRepo.find({
+        where: { reportId },
+        order: { orderIndex: 'ASC' },
+      });
+
+      if (originalCharts.length > 0) {
+        const chartValues: unknown[][] = [];
+        for (const chart of originalCharts) {
+          const chartId = v4();
+          result.charts[chart.id] = chartId;
+
+          const chartData: IChartData = JSON.parse(chart.data);
+          const emptied = emptyReportChartByType(deepCopy(chartData));
+          delete (emptied as Record<string, unknown>).id;
+          delete (emptied as Record<string, unknown>).name;
+          delete (emptied as Record<string, unknown>).type;
+          const dataString = JSON.stringify(emptied);
+
+          chartValues.push([chartId, chart.name, chart.type, chart.orderIndex, dataString, new Date(), userId, id]);
+        }
+
+        await this.dataSource.query(
+          'INSERT INTO core_report_charts (id, name, type, orderIndex, data, createdAt, createdBy, reportId) VALUES ?',
+          [chartValues],
+        );
+      }
+
+      return result;
+    } catch (error) {
+      // Rollback: remove the created report (cascade removes charts)
+      await this.reportRepo.delete({ id });
+      throw new BadRequestException(ErrorMessages.ERROR_WHILE_SAVING_REPORT);
+    }
+  }
+
+  /**
+   * Delete reports by IDs (rollback utility for failed duplication).
+   * Mirrors v3 cleanReports().
+   */
+  async cleanReports(ids: string[]): Promise<void> {
+    for (const id of ids) {
+      try {
+        await this.reportRepo.delete({ id });
+      } catch (error) {
+        this.logger.warn(`Failed to clean report ${id}: ${(error as Error).message}`);
       }
     }
   }
