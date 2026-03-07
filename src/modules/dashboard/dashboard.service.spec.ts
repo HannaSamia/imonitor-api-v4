@@ -1,6 +1,6 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { getRepositoryToken } from '@nestjs/typeorm';
-import { BadRequestException, NotFoundException, ForbiddenException } from '@nestjs/common';
+import { BadRequestException, NotFoundException } from '@nestjs/common';
 import { DataSource } from 'typeorm';
 import { DashboardService } from './dashboard.service';
 import { CoreDashboard } from '../../database/entities/core-dashboard.entity';
@@ -11,7 +11,6 @@ import { CoreSharedDashboard } from '../../database/entities/core-shared-dashboa
 import { CoreWidgetBuilder } from '../../database/entities/core-widget-builder.entity';
 import { CoreWidgetBuilderCharts } from '../../database/entities/core-widget-builder-charts.entity';
 import { DateHelperService } from '../../shared/services/date-helper.service';
-import { ErrorMessages } from '../../shared/constants/error-messages';
 import { WidgetBuilderService } from '../widget-builder/widget-builder.service';
 
 // ─── Mock Factories ─────────────────────────────────────────────────────────

@@ -107,7 +107,7 @@ export class DataAnalysisService {
       await this.dataSource.query('DELETE FROM core_data_analysis_chart WHERE dataAnalysisId = ?', [dto.id]);
 
       await this.bulkInsertReportsAndCharts(dto.id, reportIds, chartIds);
-    } catch (error) {
+    } catch (_error) {
       throw new BadRequestException(ErrorMessages.ERROR_UPDATE);
     }
   }
@@ -144,10 +144,7 @@ export class DataAnalysisService {
       ORDER BY \`isDefault\` DESC, isFavorite DESC,
         \`updatedAt\` DESC, \`createdAt\` DESC, name DESC`;
 
-    const dataAnalyses: ListDataAnalysisDto[] = await this.dataSource.query(listQuery, [
-      currentUserId,
-      currentUserId,
-    ]);
+    const dataAnalyses: ListDataAnalysisDto[] = await this.dataSource.query(listQuery, [currentUserId, currentUserId]);
 
     // Get user's privileged tables (via report used tables, not WB used tables)
     const privilegedTablesQuery = `
@@ -242,7 +239,7 @@ export class DataAnalysisService {
           [values],
         );
       }
-    } catch (error) {
+    } catch (_error) {
       throw new BadRequestException(ErrorMessages.ERROR_SHARE);
     }
   }
@@ -472,7 +469,7 @@ export class DataAnalysisService {
       const pdfPath = await this.exportHelper.exportPDF(htmlPath);
       await this.exportHelper.cleanupFile(htmlPath);
       return pdfPath;
-    } catch (error) {
+    } catch (_error) {
       await this.exportHelper.cleanupFile(htmlPath);
       throw new BadRequestException(ErrorMessages.ERROR_OCCURED);
     }
@@ -491,7 +488,11 @@ export class DataAnalysisService {
     currentUserId: string,
   ): Promise<string> {
     const da = await this.getDataAnalysisByStatus(dataAnalysisId, status);
-    const tabs: Array<{ name: string; header: Array<{ text: string; datafield: string }>; body: Record<string, unknown>[] }> = [];
+    const tabs: Array<{
+      name: string;
+      header: Array<{ text: string; datafield: string }>;
+      body: Record<string, unknown>[];
+    }> = [];
 
     const promises: Promise<unknown>[] = [];
     for (const chart of da.charts) {
@@ -504,7 +505,12 @@ export class DataAnalysisService {
       );
     }
 
-    const results = (await Promise.all(promises)) as Array<{ name: string; type: string; header?: Array<{ text: string; datafield: string }>; body?: Record<string, unknown>[] }>;
+    const results = (await Promise.all(promises)) as Array<{
+      name: string;
+      type: string;
+      header?: Array<{ text: string; datafield: string }>;
+      body?: Record<string, unknown>[];
+    }>;
     for (const result of results) {
       let name = result.name.replace(/[:\[\]*?/\\]/g, '-');
       if (tabs.some((tab) => tab.name === name)) {
@@ -576,7 +582,7 @@ export class DataAnalysisService {
       });
 
       await this.bulkInsertReportsAndCharts(id, reportIds, chartIds);
-    } catch (error) {
+    } catch (_error) {
       throw new BadRequestException(ErrorMessages.ERROR_SAVE);
     }
   }

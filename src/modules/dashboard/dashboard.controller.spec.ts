@@ -3,7 +3,6 @@ import { ForbiddenException } from '@nestjs/common';
 import { DashboardController } from './dashboard.controller';
 import { DashboardService } from './dashboard.service';
 import { PrivilegeGuard } from '../../auth/guards/privilege.guard';
-import { ErrorMessages } from '../../shared/constants/error-messages';
 
 const mockDashboardService = {
   save: jest.fn(),

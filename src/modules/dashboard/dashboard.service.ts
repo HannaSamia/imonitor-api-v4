@@ -149,7 +149,7 @@ export class DashboardService {
       await this.dataSource.query('DELETE FROM core_dashboard_chart WHERE dashboardId = ?', [dto.id]);
 
       await this.bulkInsertWbAndCharts(dto.id, widgetBuilderIds, chartIds);
-    } catch (error) {
+    } catch (_error) {
       throw new BadRequestException(ErrorMessages.ERROR_UPDATE);
     }
   }
@@ -309,7 +309,7 @@ export class DashboardService {
           values,
         ]);
       }
-    } catch (error) {
+    } catch (_error) {
       throw new BadRequestException(ErrorMessages.ERROR_SHARE);
     }
   }
@@ -607,7 +607,7 @@ export class DashboardService {
       });
 
       await this.bulkInsertWbAndCharts(id, widgetBuilderIds, chartIds);
-    } catch (error) {
+    } catch (_error) {
       throw new BadRequestException(ErrorMessages.ERROR_SAVE);
     }
   }

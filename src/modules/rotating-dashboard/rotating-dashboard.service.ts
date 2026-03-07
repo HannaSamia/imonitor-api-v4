@@ -219,7 +219,7 @@ export class RotatingDashboardService {
           [values],
         );
       }
-    } catch (error) {
+    } catch (_error) {
       throw new BadRequestException(ErrorMessages.ERROR_SHARE);
     }
   }
