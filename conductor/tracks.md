@@ -8,5 +8,6 @@
 | [x] | phase3.2-core-features_20260303 | Phase 3.2: Core Features (Modules, Parameters, NodeDefinition) | 2026-03-03 | 2026-03-03 |
 | [x] | phase3.3.1-reports_20260304 | Phase 3.3.1: Reports Module | 2026-03-04 | 2026-03-04 |
 | [x] | phase3.3.2-reporting_20260304 | Phase 3.3.2: WidgetBuilder, QBE & Remaining Reporting | 2026-03-04 | 2026-03-05 |
+| [~] | phase3.4-dashboards_20260305 | Phase 3.4: Dashboards, RotatingDashboard & DataAnalysis | 2026-03-05 | 2026-03-05 |
 
 <!-- Tracks registered by /conductor:new-track -->
