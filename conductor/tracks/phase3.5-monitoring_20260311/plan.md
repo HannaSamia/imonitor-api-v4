@@ -60,11 +60,11 @@ Implement the Connectivity module — 3 endpoints with dynamic table querying an
 
 ### Tasks
 
-- [ ] Task 3.1: Create DTOs for connectivity — `ConnectivityResponseDto`, `ConnectivityBodyDto`, `ConnectivityHistoryParamsDto` (with date validation)
-- [ ] Task 3.2: Create `ConnectivityService` — `getAllConnectivities` (dynamic UNION query across `*_connectivity_test` tables), `getUserConnectivityHistory` (date-range filtered), `getFailedNodes`
-- [ ] Task 3.3: Extend `ConnectivityService` — `exportExcel` using `ExportHelperService`
-- [ ] Task 3.4: Create `ConnectivityController` with 3 endpoints, Swagger decorators, PrivilegeGuard
-- [ ] Task 3.5: Create `ConnectivityModule` — register service, controller, inject LegacyDataDbService
+- [x] Task 3.1: Create DTOs for connectivity — `ConnectivityResponseDto`, `ConnectivityBodyDto`, `ConnectivityHistoryParamsDto` (with date validation)
+- [x] Task 3.2: Create `ConnectivityService` — `getAllConnectivities` (dynamic UNION query across `*_connectivity_test` tables), `getUserConnectivityHistory` (date-range filtered), `getFailedNodes`
+- [x] Task 3.3: Extend `ConnectivityService` — `exportExcel` using `ExportHelperService`
+- [x] Task 3.4: Create `ConnectivityController` with 3 endpoints, Swagger decorators, PrivilegeGuard
+- [x] Task 3.5: Create `ConnectivityModule` — register service, controller, inject LegacyDataDbService
 
 ### Verification
 
