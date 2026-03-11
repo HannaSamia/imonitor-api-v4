@@ -25,6 +25,7 @@ import { DashboardModule } from './modules/dashboard/dashboard.module';
 import { RotatingDashboardModule } from './modules/rotating-dashboard/rotating-dashboard.module';
 import { DataAnalysisModule } from './modules/data-analysis/data-analysis.module';
 import { ObservabilityModule } from './modules/observability/observability.module';
+import { ConnectivityModule } from './modules/connectivity/connectivity.module';
 import { CorrelationIdMiddleware } from './logger/correlation-id.middleware';
 import { RequestFilterMiddleware } from './shared/middleware/request-filter.middleware';
 import { RateLimiterMiddleware } from './shared/middleware/rate-limiter.middleware';
@@ -65,6 +66,7 @@ import { GlobalExceptionFilter } from './shared/filters/global-exception.filter'
     RotatingDashboardModule,
     DataAnalysisModule,
     ObservabilityModule,
+    ConnectivityModule,
   ],
   providers: [
     // Global guard — JWT auth on all routes (unless @Public())
