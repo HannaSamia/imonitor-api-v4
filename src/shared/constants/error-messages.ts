@@ -91,6 +91,24 @@ export const ErrorMessages = {
   SHARED_WIDGET_BUILDER_NOT_FOUND: 'Shared widget builder does not exist',
   CHART_NOT_FOUND: 'Report chart does not exist',
 
+  // Observability errors (preserving v3 ObservabilityErrorMessages)
+  METRIC_DOES_NOT_EXIST: 'Metric does not exist',
+  DEFAULT_METRIC_NOT_SELECTED: 'Default metric not selected',
+  OB_CHART_DOES_NOT_EXIST: 'Observability chart does not exist',
+  OB_DASHBOARD_DOES_NOT_EXIST: 'Observability dashboard does not exist',
+  CHART_NOT_EXISTS: 'Chart does not exist',
+  EXPLODED_STATUS_CHANGED: 'Cannot change exploded status when charts exist',
+
+  // Connectivity errors
+  CONNECTIVITY_ERROR: 'Error fetching connectivity data',
+
+  // Notification errors
+  NOTIFICATION_SETTING_NOT_FOUND: 'Notification setting not found',
+  NOTIFICATION_NOT_FOUND: 'Notification not found',
+
+  // Authorization errors
+  UNAUTHORIZED_ACTION: 'You are not authorized to perform this action.',
+
   // Generic errors (preserving v3 typo for backward compat)
   ERROR_OCCURED: 'an error occured!',
   NOT_FOUND: 'You are lost',

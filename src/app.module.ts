@@ -24,6 +24,9 @@ import { QbeModule } from './modules/qbe/qbe.module';
 import { DashboardModule } from './modules/dashboard/dashboard.module';
 import { RotatingDashboardModule } from './modules/rotating-dashboard/rotating-dashboard.module';
 import { DataAnalysisModule } from './modules/data-analysis/data-analysis.module';
+import { ObservabilityModule } from './modules/observability/observability.module';
+import { ConnectivityModule } from './modules/connectivity/connectivity.module';
+import { NotificationModule } from './modules/notifications/notification.module';
 import { CorrelationIdMiddleware } from './logger/correlation-id.middleware';
 import { RequestFilterMiddleware } from './shared/middleware/request-filter.middleware';
 import { RateLimiterMiddleware } from './shared/middleware/rate-limiter.middleware';
@@ -63,6 +66,9 @@ import { GlobalExceptionFilter } from './shared/filters/global-exception.filter'
     DashboardModule,
     RotatingDashboardModule,
     DataAnalysisModule,
+    ObservabilityModule,
+    ConnectivityModule,
+    NotificationModule,
   ],
   providers: [
     // Global guard — JWT auth on all routes (unless @Public())

@@ -15,7 +15,7 @@ NestJS migration of enterprise telecom monitoring API. Express.js v3 → NestJS 
 ```bash
 npm run build          # TypeScript compilation — MUST pass before commit
 npm run lint           # ESLint + Prettier — MUST pass before commit
-npm test               # Jest unit tests — 734 tests, 41 suites
+npm test               # Jest unit tests — 852 tests, 44 suites
 npm run test:cov       # Coverage report
 npm run test:e2e       # E2E tests (scaffold only until Phase 5)
 ```
@@ -31,7 +31,7 @@ npm run test:e2e       # E2E tests (scaffold only until Phase 5)
 | 3.3.1: Reports | `migration/phase-3.3.1-reports` | Done | `v0.3.3.1-migration-phase3.3.1` |
 | 3.3.2: WidgetBuilder, QBE | `migration/phase-3.3.2-reporting` | Done | `v0.3.3.2-migration-phase3.3.2` |
 | 3.4: Dashboards | `migration/phase-3.4-dashboards` | Done | `v0.3.4-migration-phase3.4` |
-| 3.5: Monitoring | `migration/phase-3.5-monitoring` | Pending | — |
+| 3.5: Monitoring | `migration/phase-3.5-monitoring` | Done | `v0.3.5-migration-phase3.5` |
 | 3.6: Customer Care | `migration/phase-3.6-customer-care` | Pending | — |
 | 3.7: Processing | `migration/phase-3.7-processing` | Pending | — |
 | 3.8: Automation & Admin | `migration/phase-3.8-automation-admin` | Pending | — |
@@ -88,6 +88,9 @@ src/
 │   ├── dashboard/             # Dashboard CRUD, share, favorite, save default
 │   ├── rotating-dashboard/    # Rotating dashboard CRUD, share, favorite
 │   ├── data-analysis/         # Data analysis CRUD, share, exports (HTML/PDF/Excel)
+│   ├── observability/         # Observability metrics, charts (8 types), dashboards — 30 endpoints
+│   ├── connectivity/          # Connectivity status, history, Excel export — 3 endpoints
+│   ├── notifications/         # Notification subscriptions, sent list, view/unsubscribe — 6 endpoints
 │   ├── parameters/            # Dynamic param tables — CRUD + Excel export
 │   └── node-definition/       # Dynamic node definition tables — CRUD + Excel export
 └── shared/                    # Global: constants, DTOs, enums, events, filters, helpers,
@@ -192,6 +195,20 @@ POST `/` `/:dataAnalysisId/share` `/shared/:id` `/default/:id`
 GET `/` `/:id` `/shared/:id`
 PUT `/:id` `/favorite/:id`
 GET `/export/html/:id/:status/:fromdate/:todate/:interval` `/export/pdf/...` `/export/excel/...`
+
+### Observability (`api/v1/observability`) — all JWT + PrivilegeGuard
+GET `/metrics/nodes` `/metrics` `/metrics/reports/:id` `/metrics/:id` `/charts/metrics/:filter` `/charts` `/charts/:id` `/dashboards` `/dashboards/:id`
+POST `/metrics/nodes/fields` `/nodes/metrics` `/metrics` `/metrics/generate/tabular` `/metrics/generate/single` `/charts` `/dashboards`
+POST `/generate/status-panel/vertical` `/generate/status-panel/horizontal` `/generate/counter-list` `/generate/hexagon` `/generate/trend` `/generate/bar` `/generate/connectivity` `/generate/time/travel`
+PUT `/metrics/:id` `/favorite/:id` `/charts/:id` `/charts/favorite/:id` `/dashboards/:id` `/dashboards/favorite/:id`
+
+### Connectivity (`api/v1/connectivities`) — all JWT + PrivilegeGuard
+GET `/` `/:fromdate/:todate/:filter` `/export/excel/:fromdate/:todate/:filter`
+
+### Notifications (`api/v1/notifications`) — all JWT + PrivilegeGuard
+GET `/` `/settings` `/test/:email`
+PUT `/view`
+PATCH `/view/:id` `/unsubscribe/:id`
 
 ### Health (`/health`) — Public
 DB ping, Redis ping, Memory heap 256MB

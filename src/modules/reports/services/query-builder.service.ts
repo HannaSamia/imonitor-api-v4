@@ -38,6 +38,8 @@ import {
 } from '../dto/report-interfaces';
 import { GenerateReportDto } from '../dto/generate-report.dto';
 import { GenerateWidgetBuilderDto } from '../../widget-builder/dto/generate-widget-builder.dto';
+import { GenerateObservabilityMetricDto } from '../../observability/dto/observability-metric.dto';
+import { ObservabilityTimeFrames } from '../../../shared/enums/observability.enum';
 import { dbDateAdd, dbDateFormat, dbIfNull, dbRound, dbTruncate, dbDecrypt } from '../utils/sql-helpers';
 import {
   REF_TABLE_KEY,
@@ -60,6 +62,7 @@ import {
   PARAMS_TABLE_NAME,
   DATE_TABLE_NAME,
   SUB_TABLE_NAME,
+  STAT_DATE_PLACEHOLDER,
 } from '../constants';
 
 // ---------------------------------------------------------------------------
@@ -198,11 +201,13 @@ interface FieldsResultDto {
   displayName: string;
 }
 
-/** Result returned by generate() and generateQuery() */
+/** Result returned by generate(), generateQuery(), and generateObservability() */
 export interface GenerateResultDto {
   header: ITabularHeader[];
   query: string;
   fieldsArray: FieldsArrayDto[];
+  /** Set only by generateObservability() — indicates if metric has an exploded field */
+  isExploded?: boolean;
 }
 
 /** Time model used in comparison date processing */
@@ -3640,5 +3645,1357 @@ export class QueryBuilderService {
         );
       }
     }
+  }
+
+  // =========================================================================
+  // OBSERVABILITY — Public: generateObservability
+  // =========================================================================
+
+  /**
+   * Generate SQL query for Observability metrics.
+   *
+   * Faithfully ported from v3 generateObservability() (queryBuilder.service.ts:3274-3861).
+   * Key differences from generateWidgetBuilderQuery():
+   * - Supports timeFrame-based date selection (CURRENT, HOUR_24, HOUR_48, CUSTOM)
+   * - Has toDate support (custom timeframe)
+   * - Tracks outerQueryFields for orderBy resolution
+   * - Has exploded field support (isExplodedBy)
+   * - Uses STAT_DATE_PLACEHOLDER for forDbSave mode
+   * - No priority/inclusion columns
+   */
+  async generateObservability(
+    tabularObject: GenerateObservabilityMetricDto,
+    forDbSave = false,
+  ): Promise<GenerateResultDto> {
+    // PERFORMANCE: Pre-fetch system config values
+    const configKeys = [SK.dateFormat1, 'chartDateFormat', SK.encryption];
+    const configValuesMap = await this.systemConfig.getConfigValues(configKeys);
+    const obsDateFormat1Value = configValuesMap[SK.dateFormat1] || '%Y-%m-%d %H:%i:%s';
+    const obsChartDateFormatValue = configValuesMap['chartDateFormat'] || '%Y-%m-%d';
+    const obsEncryptionValue = configValuesMap[SK.encryption] || '';
+
+    // Arrays
+    const alphaFieldsResults: FieldsResultDto[] = [];
+    const header: ITabularHeader[] = [];
+    const tablesAdjustedNamesArray: string[] = [];
+    const noneAlphafieldsObject: Record<number, IReportField[]> = {};
+    const fieldsArray: FieldsArrayDto[] = [];
+
+    // Flags
+    let specialParamsSelected = false;
+    let normalParamsSelected = false;
+    let alphaSelected = false;
+
+    // Queries
+    const compareColumns: Record<string, string> = {};
+    let outerLeftJoinQueryString = '';
+    let compareLeftJoinQueryString = '';
+    let innerQueryAlphaString = '';
+
+    // Query arrays
+    const outerQueryStatements: string[] = [];
+    const outerQueryFields: string[] = [];
+    const groupByValues: string[] = [];
+    const paramsSelectionStatements: string[] = [];
+    const innerQueryParamsUnionStatements: string[] = [];
+    const outerLeftJoinQueryArray: string[] = [];
+    const intervalTableArray: string[] = [];
+    let innerQueryAlpha: string[] = [];
+    const innerTableSelectionArray: string[] = [];
+    const innerQueryAlphaUnionsTable: string[] = [];
+
+    // Cast typed arrays from the DTO (v3 used typed interfaces, v4 DTO uses unknown)
+    const typedTabularObject = tabularObject as unknown as {
+      tables: IMinimalTabularTable[];
+      compare: ICustomCompareColumn[];
+      operation: ICustomOperationColumn[];
+      control: ICustomControlColumn[];
+      priority?: ICustomControlColumn[];
+      inclusion?: ICustomControlColumn[];
+      globalFilter: IReportGlobalFilter;
+      orderBy: ITabularOrderBy[];
+      timeFrame?: string;
+      timeFilter?: string;
+      nodeType?: string;
+      fromDate?: string;
+      toDate?: string;
+      limit?: number;
+    };
+
+    const tabularTables = await this.widgetBuilderTableUpdate(typedTabularObject.tables);
+
+    let fromDate =
+      typedTabularObject.timeFrame !== ObservabilityTimeFrames.CUSTOM
+        ? this.observabilityIntervalAdjuster(typedTabularObject.timeFrame as ObservabilityTimeFrames, tabularTables)
+        : this.dateHelper.formatDate(
+            DateFormats.ReportFormatHourly,
+            this.dateHelper.parseISO(typedTabularObject.fromDate!),
+          );
+
+    const toDate =
+      typedTabularObject.timeFrame === ObservabilityTimeFrames.CUSTOM
+        ? this.dateHelper.formatDate(
+            DateFormats.ReportFormatHoulyEndOfHour,
+            this.dateHelper.parseISO(typedTabularObject.toDate!),
+          )
+        : null;
+
+    let dateFormat = '';
+    switch (typedTabularObject.timeFilter) {
+      case TimeFilters.minute:
+        break;
+      case TimeFilters.hour:
+        dateFormat = QueryDateFormats.hour;
+        break;
+      case TimeFilters.day:
+      case TimeFilters.week:
+        dateFormat = QueryDateFormats.day;
+        break;
+      case TimeFilters.month:
+        dateFormat = QueryDateFormats.month;
+        break;
+      case TimeFilters.year:
+        dateFormat = QueryDateFormats.year;
+        break;
+    }
+
+    if (forDbSave) {
+      fromDate = STAT_DATE_PLACEHOLDER;
+    }
+
+    if (tabularTables.length === 1 && tabularTables.at(-1)!.tableName === REF_TABLE_KEY) {
+      throw new BadRequestException('Cannot select paramsview only');
+    }
+
+    let refTableIndex = -1;
+    const tableNameArray: string[] = [];
+    let statInterval: number | null = null;
+    let startTime: string | null = null;
+    let isTablesCompatible = true;
+
+    for (let tableIndex = 0; tableIndex < tabularTables.length; tableIndex++) {
+      const table = tabularTables[tableIndex];
+      if (table.tableName !== REF_TABLE_KEY) {
+        tableNameArray.push(table.tableName);
+      } else {
+        if (statInterval === null && startTime === null) {
+          statInterval = table.statInterval;
+          startTime = table.startTime;
+        } else {
+          if (statInterval !== table.statInterval && startTime !== table.startTime) {
+            isTablesCompatible = false;
+            break;
+          }
+        }
+        refTableIndex = tableIndex;
+      }
+    }
+
+    if (!isTablesCompatible) {
+      throw new BadRequestException('Tables not compatible for minute selection');
+    }
+
+    // ---------------------------------------------------------------
+    // RefTable processing
+    // ---------------------------------------------------------------
+    const refTableOuterQueryValues: string[] = [];
+    const refHeader: ITabularHeader[] = [];
+    const refNodeNameValue = ALPHA_NODE_NAME;
+
+    if (refTableIndex !== -1) {
+      for (const field of tabularTables[refTableIndex].fields) {
+        fieldsArray.push({
+          tableId: tabularTables[refTableIndex].id,
+          type: field.type,
+          tableIndex: refTableIndex,
+          draggedId: field.draggedId,
+          isCustomColumn: false,
+          operation: field.operation,
+          tableName: tabularTables[refTableIndex].tableName,
+          tableNodeColumn: tabularTables[refTableIndex].nodeNameColumn,
+          columnName: field.columnName,
+          columnDisplayName: field.columnDisplayName,
+          refNodeColumn: ALPHA_NODE_NAME,
+        });
+
+        // Check if field is a parameter
+        const paramRows: Array<{ id: string }> = await this.dataSource.query(
+          `SELECT id FROM core_tables_field WHERE id = ? AND isParam = 1`,
+          [field.id],
+        );
+
+        if (paramRows.length > 0) {
+          specialParamsSelected = true;
+          await this.observabilitySpecialParameterProcessing(
+            tableNameArray,
+            field,
+            paramRows[0],
+            alphaFieldsResults,
+            refTableOuterQueryValues,
+            outerQueryFields,
+            groupByValues,
+            header,
+          );
+        } else {
+          normalParamsSelected = true;
+          const columnSelectName = `${REF_TABLE_KEY}.\`${field.columnDisplayName}\``;
+          const parameterIfNullString = dbIfNull(field.columnName!, `"${UNKNOWN_KEY}"`);
+          paramsSelectionStatements.push(`${parameterIfNullString} as '${field.columnDisplayName}'`);
+          refTableOuterQueryValues.push(`${columnSelectName} as '${field.columnDisplayName}'`);
+          outerQueryFields.push(field.columnDisplayName);
+          groupByValues.push(columnSelectName);
+
+          refHeader.push({
+            text: field.columnDisplayName,
+            datafield: field.columnDisplayName,
+            draggedId: field.draggedId,
+            aggregates: field.footerAggregation || [],
+            pinned: field.pinned,
+            hidden: field.hidden,
+            headerColumnType: field.type,
+            index: field.index,
+          });
+        }
+      }
+    }
+
+    // Determine if metric is exploded
+    const isExploded = this.isMetricExploded(typedTabularObject);
+
+    // ---------------------------------------------------------------
+    // Normal tables processing
+    // ---------------------------------------------------------------
+    for (let tableIndex = 0; tableIndex < tabularTables.length; tableIndex++) {
+      let innerTableSelectionStringsArray: string[] = [];
+      const innerGroupByValues: string[] = [];
+
+      const table = tabularTables[tableIndex];
+      const tableName = table.tableName;
+      tablesAdjustedNamesArray.push(tableName);
+      let innerTableQueryArray: string[] = [];
+
+      const joinTableName = `${JOIN_TABLE_NOTATION}${tableIndex}`;
+      outerLeftJoinQueryArray[tableIndex] = ` left join (${OUTER_QUERY_INNER_VALUE_KEY}) as ${joinTableName} on `;
+
+      if (specialParamsSelected) {
+        for (const alphaFieldResult of alphaFieldsResults) {
+          outerLeftJoinQueryArray[tableIndex] +=
+            `${joinTableName}.\`${alphaFieldResult.displayName}\` =${REF_TABLE_KEY}.\`${alphaFieldResult.displayName}\` and `;
+        }
+      }
+
+      if (tableName !== REF_TABLE_KEY) {
+        // Normal table field processing
+        intervalTableArray.push(tableName);
+
+        const paramType = isTokenExistsInString(table.tableName, 'hw_stats') ? 'is_hw_monitoring' : 'is_reporting';
+
+        let whereColumn = '';
+        const nodeType = typedTabularObject.nodeType || NodeType.ALL;
+        if (nodeType === NodeType.ALL) {
+          whereColumn = 'where';
+        } else if (nodeType === NodeType.TEST) {
+          whereColumn = 'where is_test_node = 1 and ';
+        } else if (nodeType === NodeType.PRODUCTION) {
+          whereColumn = 'where is_live = 1 and is_test_node = 0 and ';
+        }
+
+        if (normalParamsSelected) {
+          if (table.nodeNameColumn && table.nodeNameColumn !== NODE_NAME) {
+            innerQueryAlpha.push(table.nodeNameColumn);
+          }
+
+          const paramSelectionString =
+            paramsSelectionStatements.length > 0 ? ',' + paramsSelectionStatements.toString() : '';
+          innerQueryParamsUnionStatements.push(
+            ` select ${table.paramsNodeName} as ${refNodeNameValue} ${paramSelectionString}
+            from ${this.dataDbName}.${table.paramsTable} ${whereColumn} ${paramType} = 1 group by ${table.paramsNodeName}`,
+          );
+          outerLeftJoinQueryArray[tableIndex] +=
+            ` ${joinTableName}.${table.nodeNameColumn} = ${REF_TABLE_KEY}.${refNodeNameValue} and `;
+        } else {
+          innerQueryParamsUnionStatements.push(
+            `select ${table.paramsNodeName} as ${refNodeNameValue} from ${this.dataDbName}.${table.paramsTable} ${whereColumn} ${paramType} = 1 group by ${table.paramsNodeName}`,
+          );
+        }
+
+        const numericAndEncryptedFields: IReportField[] = [];
+        for (const field of table.fields) {
+          fieldsArray.push({
+            tableId: tabularTables[tableIndex].id,
+            type: field.type,
+            draggedId: field.draggedId,
+            tableIndex,
+            isCustomColumn: false,
+            operation: field.operation,
+            tableName: table.tableName,
+            tableNodeColumn: table.nodeNameColumn,
+            columnName: field.columnName,
+            columnDisplayName: field.columnDisplayName,
+            refNodeColumn: ALPHA_NODE_NAME,
+          });
+
+          header.push({
+            text: field.columnDisplayName,
+            datafield: field.columnDisplayName,
+            draggedId: field.draggedId,
+            aggregates: field.footerAggregation || [],
+            pinned: field.pinned,
+            hidden: field.hidden,
+            headerColumnType: field.type,
+            index: field.index,
+          });
+
+          alphaSelected = this.processObservabilityFieldsByType(
+            field,
+            alphaSelected,
+            tableIndex,
+            tabularTables,
+            joinTableName,
+            outerQueryStatements,
+            outerQueryFields,
+            groupByValues,
+            innerQueryAlpha,
+            innerTableSelectionStringsArray,
+            dateFormat,
+            innerGroupByValues,
+            numericAndEncryptedFields,
+            innerTableQueryArray,
+          );
+        }
+
+        noneAlphafieldsObject[tableIndex] = numericAndEncryptedFields;
+        innerTableSelectionStringsArray.push(table.nodeNameColumn);
+        innerGroupByValues.push(table.nodeNameColumn);
+
+        if (specialParamsSelected) {
+          for (const alphaField of alphaFieldsResults) {
+            if (alphaField.tableName === table.tableName) {
+              const ifNullStr = dbIfNull(
+                `(select ${alphaField.paramSelectedField} from ${this.dataDbName}.${alphaField.paramTableName} where ${alphaField.paramTableField} = ${alphaField.tableField})`,
+                `"${UNKNOWN_KEY}"`,
+              );
+              innerTableSelectionStringsArray.push(`${ifNullStr} as '${alphaField.displayName}'`);
+              innerGroupByValues.push(`\`${alphaField.displayName}\``);
+            }
+          }
+        }
+
+        innerTableQueryArray = [...new Set(innerTableQueryArray)];
+        innerTableSelectionStringsArray = [...new Set(innerTableSelectionStringsArray)];
+        const innerTableQuery = [...innerTableQueryArray, ...innerTableSelectionStringsArray].toString();
+        innerQueryAlpha = [...new Set(innerQueryAlpha)];
+        const innerGroupByStatement = [...new Set(innerGroupByValues)].toString();
+
+        let alphaSelect = ',';
+        let alphaGroupBy = ',';
+        let alphaJoin = ' and ';
+        for (let alphaQueryIndex = 0; alphaQueryIndex < innerQueryAlpha.length; alphaQueryIndex++) {
+          const alphaQuery = innerQueryAlpha[alphaQueryIndex];
+          alphaSelect += ` ${alphaQuery} as ${JOIN_TABLE_NOTATION}${alphaQueryIndex + 1}${SPACE_COMMA_SPACE_KEY}`;
+          alphaGroupBy += ` ${JOIN_TABLE_NOTATION}${alphaQueryIndex + 1}${SPACE_COMMA_SPACE_KEY}`;
+          alphaJoin += `${JOIN_TABLE_NOTATION}.${alphaQuery} = ${JOIN_TABLE_NOTATION}${alphaQueryIndex + 1} ${SPACE_AND_SPACE_KEY}`;
+        }
+
+        let dateConditionStr = `${DEFAULT_DATE_COLUMN} >= '${fromDate}'`;
+        if (toDate) {
+          dateConditionStr += ` and ${DEFAULT_DATE_COLUMN} <= '${toDate}'`;
+        }
+
+        innerTableSelectionArray.push(
+          `SELECT
+            ${innerTableQuery}
+          FROM
+            ((
+              SELECT
+                max(${table.statDateNameColumn}) as ${DEFAULT_DATE_COLUMN} ,
+                ${table.nodeNameColumn} AS ${JOIN_TABLE_NOTATION}0 ${alphaSelect.substring(0, alphaSelect.length - SPACE_COMMA_SPACE_KEY.length)}
+              FROM
+                ${table.tableName}
+              WHERE
+                ${dateConditionStr}
+              GROUP BY
+              ${JOIN_TABLE_NOTATION}0
+                ${alphaGroupBy.substring(0, alphaGroupBy.length - SPACE_COMMA_SPACE_KEY.length)}
+                ) AS d
+              LEFT JOIN ${table.tableName} AS ${JOIN_TABLE_NOTATION} ON ${JOIN_TABLE_NOTATION}.${table.nodeNameColumn} = d.${JOIN_TABLE_NOTATION}0
+              AND ${JOIN_TABLE_NOTATION}.${table.statDateNameColumn} = d.${DEFAULT_DATE_COLUMN}
+              ${alphaJoin.substring(0, alphaJoin.length - SPACE_AND_SPACE_KEY.length)}
+            )
+          GROUP BY
+          ${innerGroupByStatement}`,
+        );
+      } else {
+        innerTableSelectionArray.push('');
+        outerQueryStatements.push(...refTableOuterQueryValues);
+        header.push(...refHeader);
+      }
+    }
+
+    // Alpha string construction
+    if (alphaSelected || normalParamsSelected) {
+      innerQueryAlphaString = innerQueryAlpha.length > 0 ? ',' + innerQueryAlpha.toString() : '';
+    }
+
+    // ---------------------------------------------------------------
+    // Outer query — joins done after ref_table
+    // ---------------------------------------------------------------
+    const alphaFields = fieldsArray.reduce((unique: IFieldsArrayEntry[], field) => {
+      const f = field as IFieldsArrayEntry;
+      if (
+        f.type === FieldTypes.alpha &&
+        f.isCustomColumn === false &&
+        f.columnName !== f.tableNodeColumn &&
+        f.tableId !== REF_TABLE_ID &&
+        !unique.some((ca) => ca.columnName === f.columnName)
+      ) {
+        unique.push(f);
+      }
+      return unique;
+    }, []);
+
+    for (let outerIndex = 0; outerIndex < outerLeftJoinQueryArray.length; outerIndex++) {
+      const joinName = JOIN_TABLE_NOTATION + outerIndex;
+      for (const alphaField of alphaFields) {
+        const tableColumnsName = `${REF_TABLE_KEY}.${alphaField.columnName}`;
+        outerLeftJoinQueryArray[outerIndex] +=
+          ` ${joinName}.\`${alphaField.columnDisplayName}\`=${tableColumnsName} and `;
+      }
+    }
+
+    outerLeftJoinQueryString = this.observabilityOuterJoinProcessing(
+      outerLeftJoinQueryArray,
+      tablesAdjustedNamesArray,
+      tabularTables,
+      innerTableSelectionArray,
+      outerLeftJoinQueryString,
+      innerQueryAlphaString,
+      specialParamsSelected,
+      innerQueryAlphaUnionsTable,
+      alphaFieldsResults,
+      fromDate,
+      toDate,
+      refNodeNameValue,
+    );
+
+    const innerQueryParams = ` (select * from (${innerQueryParamsUnionStatements.join(SPACE_UNION_SPACE_KEY)}) as t1) as ${PARAMS_TABLE_NAME} `;
+
+    const specialParams: string[] = [];
+    for (const alphaField of alphaFieldsResults) {
+      specialParams.push(`\`${alphaField.displayName}\``);
+    }
+    const specialParamsString = specialParams.length > 0 ? ',' + specialParams.toString() : '';
+
+    let innerQueryAlphaTableString = '';
+    let modifiedInnerQueryAlphaString: string | null = null;
+    const innerQueryUnionSelect = innerQueryAlphaUnionsTable.join(SPACE_UNION_SPACE_KEY);
+
+    if (innerQueryAlphaString.length > 0) {
+      modifiedInnerQueryAlphaString = JSON.parse(JSON.stringify(innerQueryAlphaString));
+
+      if (modifiedInnerQueryAlphaString!.startsWith(',')) {
+        modifiedInnerQueryAlphaString = modifiedInnerQueryAlphaString!.substring(1);
+      }
+
+      if (modifiedInnerQueryAlphaString!.includes(NODE_NAME)) {
+        innerQueryAlphaTableString = ` (select ${DEFAULT_DATE_COLUMN}, ${modifiedInnerQueryAlphaString} ${specialParamsString} from (${innerQueryUnionSelect}) as interTable
+        group by ${modifiedInnerQueryAlphaString} ${specialParamsString} ) as ${ALPHA_TABLE_NAME} `;
+      } else {
+        innerQueryAlphaTableString = ` (select ${NODE_NAME},${DEFAULT_DATE_COLUMN} ${innerQueryAlphaString} ${specialParamsString} from (${innerQueryUnionSelect}) as interTable
+        group by ${NODE_NAME} ${innerQueryAlphaString} ${specialParamsString} ) as ${ALPHA_TABLE_NAME} `;
+      }
+    } else if (specialParamsSelected) {
+      innerQueryAlphaTableString = ` (select ${NODE_NAME},${DEFAULT_DATE_COLUMN} ${specialParamsString} from (${innerQueryUnionSelect}) as interTable group by ${NODE_NAME} ${specialParamsString})  as ${ALPHA_TABLE_NAME} `;
+    } else {
+      innerQueryAlphaTableString = ` (select *  from (${innerQueryUnionSelect}) as interTable )  as ${ALPHA_TABLE_NAME} `;
+    }
+
+    // Right join to fetch all nodes even without data
+    const JoinStatement = 'right join';
+
+    const innerQuery =
+      !alphaSelected && !normalParamsSelected && !specialParamsSelected
+        ? `(select * from ${innerQueryAlphaTableString} ${JoinStatement} ${innerQueryParams} on ${PARAMS_TABLE_NAME}.${refNodeNameValue} = ${ALPHA_TABLE_NAME}.${NODE_NAME} group by ${refNodeNameValue}  ) as refTable  `
+        : `(select * from  ${innerQueryAlphaTableString} ${JoinStatement} ${innerQueryParams} on ${PARAMS_TABLE_NAME}.${refNodeNameValue} = ${ALPHA_TABLE_NAME}.${NODE_NAME}   ) as refTable  `;
+
+    const groupByStatement = groupByValues.length > 0 ? ' group by ' + [...new Set(groupByValues)].toString() : '';
+
+    // ---------------------------------------------------------------
+    // Custom columns
+    // ---------------------------------------------------------------
+    this.fillCustomFieldInAllFieldsArray(
+      typedTabularObject.compare,
+      typedTabularObject.control,
+      typedTabularObject.operation,
+      typedTabularObject.priority || [],
+      typedTabularObject.inclusion || [],
+      fieldsArray,
+    );
+
+    // Global filter
+    const filterClauses = this.buildGlobalFilterClauses(typedTabularObject.globalFilter, fieldsArray);
+
+    // Compare columns
+    const compareQueryStatements: string[] = [];
+    try {
+      compareLeftJoinQueryString = this.processObservabilityCompare(
+        typedTabularObject,
+        fieldsArray,
+        outerLeftJoinQueryArray,
+        compareLeftJoinQueryString,
+        compareQueryStatements,
+        header,
+        compareColumns,
+        tabularTables,
+        fromDate,
+        toDate,
+        dateFormat,
+        noneAlphafieldsObject,
+        outerQueryStatements,
+        outerQueryFields,
+        refTableIndex,
+      );
+    } catch (error) {
+      throw new BadRequestException(`Error in compare columns: ${(error as Error).stack}`);
+    }
+
+    // Control columns
+    const switchQueryStatements: string[] = [];
+    try {
+      this.observabilityControlColumnsProcessing(
+        typedTabularObject,
+        fieldsArray,
+        compareColumns,
+        switchQueryStatements,
+        outerQueryFields,
+        header,
+      );
+    } catch (error) {
+      throw new BadRequestException(`Error in control columns: ${(error as Error).stack}`);
+    }
+
+    // Operation columns
+    const operationQueryStatements: string[] = [];
+    try {
+      this.observabilityOperationColumnsProcessing(
+        typedTabularObject,
+        fieldsArray,
+        compareColumns,
+        operationQueryStatements,
+        outerQueryFields,
+        header,
+      );
+    } catch (error) {
+      throw new BadRequestException(`Error in operation columns: ${(error as Error).stack}`);
+    }
+
+    const customColumns = [...compareQueryStatements, ...operationQueryStatements, ...switchQueryStatements];
+
+    // ---------------------------------------------------------------
+    // Final section
+    // ---------------------------------------------------------------
+    let orderBy = '';
+
+    if (header.length === 0) {
+      throw new BadRequestException('Default metric not selected');
+    }
+
+    if (typedTabularObject.orderBy && typedTabularObject.orderBy.length > 0) {
+      orderBy += ' order by ';
+      for (const column of typedTabularObject.orderBy) {
+        if (isUndefinedOrNull(column.orderBy)) {
+          column.orderBy = 'desc';
+        }
+        const orderField = outerQueryFields.find((field) => field === column.columnDisplayName);
+        if (orderField) {
+          orderBy += ` \`${orderField}\` ${column.orderBy}${SPACE_COMMA_SPACE_KEY}`;
+        }
+      }
+      orderBy = orderBy.substring(0, orderBy.length - SPACE_COMMA_SPACE_KEY.length);
+    }
+
+    let customColumnsQuery = customColumns.length > 0 ? customColumns.toString() : '';
+
+    if (refTableIndex === 0) {
+      customColumnsQuery = customColumnsQuery.replace(/t0/g, REF_TABLE_KEY);
+    }
+
+    // Apply WHERE before table joins
+    const innerQueryWhereClause = filterClauses.where ? ` WHERE ${filterClauses.where}` : '';
+    const havingClause = filterClauses.having ? ` HAVING ${filterClauses.having}` : '';
+
+    const limit =
+      typedTabularObject.limit && typedTabularObject.limit !== 0 ? ` limit ${typedTabularObject.limit} ` : '';
+    const outerQuery = outerQueryStatements.length > 0 ? outerQueryStatements.join(SPACE_COMMA_SPACE_KEY) : '';
+
+    const commaStr = outerQueryStatements.length > 0 && customColumns.length > 0 ? SPACE_COMMA_SPACE_KEY : '';
+
+    let finalQuery = ` select  ${outerQuery} ${commaStr} ${customColumnsQuery} from (${innerQuery} ${outerLeftJoinQueryString}
+      ${compareLeftJoinQueryString} ) ${innerQueryWhereClause} ${groupByStatement} ${havingClause} ${orderBy}  ${limit} `;
+
+    for (const tblName of intervalTableArray) {
+      const addTableDatabaseRegex = new RegExp(tblName, 'g');
+      finalQuery = finalQuery.replace(addTableDatabaseRegex, `${this.dataDbName}.${tblName}`);
+    }
+
+    // Replace config subqueries with cached values
+    finalQuery = this.replaceConfigSubqueriesForWidget(
+      finalQuery,
+      obsDateFormat1Value,
+      obsChartDateFormatValue,
+      obsEncryptionValue,
+    );
+
+    const sortedHeader = header.sort((h1, h2) => (h1.index || 0) - (h2.index || 0));
+
+    return {
+      header: sortedHeader,
+      query: finalQuery,
+      fieldsArray,
+      isExploded,
+    };
+  }
+
+  // =========================================================================
+  // OBSERVABILITY — Private: observabilityIntervalAdjuster
+  // =========================================================================
+
+  /**
+   * Compute fromDate for Observability based on timeFrame.
+   *
+   * Ported from v3 ObservabilityIntervalAdjuster() (queryBuilder.service.ts:4675-4692).
+   * CURRENT: uses intervalAdjustment (grace period + statInterval)
+   * HOUR_24 / HOUR_48: subtracts 24/48 hours from now
+   */
+  private observabilityIntervalAdjuster(timeFrame: ObservabilityTimeFrames, tabularTables: ITabularTable[]): string {
+    if (timeFrame === ObservabilityTimeFrames.CURRENT) {
+      const adjustedIntervals = this.intervalAdjustment(tabularTables);
+      return adjustedIntervals.fromDate;
+    }
+
+    let hoursToSubstitute = 24;
+    if (timeFrame === ObservabilityTimeFrames.HOUR_24) {
+      hoursToSubstitute = 24;
+    }
+    if (timeFrame === ObservabilityTimeFrames.HOUR_48) {
+      hoursToSubstitute = 48;
+    }
+
+    return this.dateHelper.formatDate(
+      DateFormats.ReportFormatMinutes,
+      this.dateHelper.subtractDurationFromDate({ hours: hoursToSubstitute }),
+    );
+  }
+
+  // =========================================================================
+  // OBSERVABILITY — Private: observabilitySpecialParameterProcessing
+  // =========================================================================
+
+  /**
+   * Process special parameter fields for Observability.
+   *
+   * Ported from v3 ObservabilitySpecialParameterProcessing() (queryBuilder.service.ts:2357-2404).
+   * Same as specialParameterProcessing but also populates outerQueryFields.
+   */
+  private async observabilitySpecialParameterProcessing(
+    tableNameArray: string[],
+    field: IReportField,
+    paramIdResult: { id: string },
+    alphaFieldsResults: FieldsResultDto[],
+    outerQueryStatements: string[],
+    outerQueryFields: string[],
+    groupByValues: string[],
+    header: ITabularHeader[],
+  ): Promise<void> {
+    const tablesNamesString = tableNameArray.join('","');
+
+    const fieldQuery = `select
+      (select tableName from ${this.coreDbName}.core_modules_tables where id = paramTableId) as paramTableName,
+      (select columnName from ${this.coreDbName}.core_tables_field where id = paramTableFieldId and tId = paramTableId) as paramTableField,
+      (select columnName from ${this.coreDbName}.core_tables_field where id = paramSelectedFieldId and tId = paramTableId) as paramSelectedField,
+      (select tableName from ${this.coreDbName}.core_modules_tables where id = tableId) as tableName,
+      (select columnName from ${this.coreDbName}.core_tables_field where id = tableFieldId and tId = tableId) as tableField,
+      "${field.columnDisplayName}" as displayName
+      from ${this.coreDbName}.core_params_table_relations where FieldId = "${paramIdResult.id}"
+      and tableId in
+      (select id from ${this.coreDbName}.core_modules_tables where tableName in
+      ("${tablesNamesString}") )`;
+
+    const fieldsResult: FieldsResultDto[] = await this.dataSource.query(fieldQuery);
+
+    if (fieldsResult.length !== tableNameArray.length) {
+      throw new BadRequestException('Tables chosen not compatible with selected parameter');
+    }
+
+    alphaFieldsResults.push(...fieldsResult);
+    const fieldSelectionName = fieldsResult[0].displayName;
+    const tableColumnName = `${REF_TABLE_KEY}.\`${fieldSelectionName}\``;
+    outerQueryStatements.push(` ${tableColumnName} as '${field.columnDisplayName}'`);
+    outerQueryFields.push(field.columnDisplayName);
+    groupByValues.push(`'${field.columnDisplayName}'`);
+
+    header.push({
+      text: field.columnDisplayName,
+      datafield: field.columnDisplayName,
+      draggedId: field.draggedId,
+      aggregates: field.footerAggregation || [],
+      pinned: field.pinned,
+      hidden: field.hidden,
+      headerColumnType: field.type,
+      index: field.index,
+    });
+  }
+
+  // =========================================================================
+  // OBSERVABILITY — Private: processObservabilityFieldsByType
+  // =========================================================================
+
+  /**
+   * Process field for Observability based on its type (alpha, datetime, number, encrypted).
+   *
+   * Ported from v3 ProcessObservabililyFieldsByType() (queryBuilder.service.ts:4508-4633).
+   * Key differences from processWidgetBuilderFieldsByType():
+   * - Has outerQueryFields tracking
+   * - Has datetime field handling
+   * - Has isExplodedBy support for exploded alpha fields
+   */
+  private processObservabilityFieldsByType(
+    field: IReportField,
+    alphaSelected: boolean,
+    tableIndex: number,
+    tabularTables: ITabularTable[],
+    joinTableName: string,
+    outerQueryStatements: string[],
+    outerQueryFields: string[],
+    groupByValues: string[],
+    innerQueryAlpha: string[],
+    innerTableSelectionStringsArray: string[],
+    dateFormat: string,
+    innerGroupByValues: string[],
+    numericAndEncryptedFields: IReportField[],
+    innerTableQueryArray: string[],
+  ): boolean {
+    const table = tabularTables[tableIndex];
+
+    if (field.type === FieldTypes.alpha) {
+      alphaSelected = true;
+
+      if (field.columnName !== table.nodeNameColumn) {
+        const tableColumnsName = `${REF_TABLE_KEY}.${field.columnName}`;
+        outerQueryStatements.push(`${tableColumnsName} as '${field.columnDisplayName}'`);
+        outerQueryFields.push(field.columnDisplayName);
+        groupByValues.push(tableColumnsName);
+
+        if (field.isExplodedBy) {
+          outerQueryStatements.push(`${dbIfNull(`t${tableIndex}.\`${field.columnDisplayName}\``, 'NULL')} as explode`);
+          outerQueryFields.push(field.columnDisplayName);
+          groupByValues.push(`\`${field.columnDisplayName}\``);
+        }
+
+        innerQueryAlpha.push(` ${(field.columnName || '').trim()}`);
+      } else {
+        const tableColumnName = `${REF_TABLE_KEY}.${ALPHA_NODE_NAME}`;
+        outerQueryStatements.push(`${tableColumnName} as '${field.columnDisplayName}'`);
+        outerQueryFields.push(field.columnDisplayName);
+        groupByValues.push(tableColumnName);
+      }
+
+      const isFieldDisplayNameInUsed =
+        innerTableSelectionStringsArray.findIndex(
+          (el) =>
+            el.toLowerCase() ===
+            `${(field.columnName || '').toLowerCase()}  as '${field.columnDisplayName.toLowerCase()}'`,
+        ) > -1;
+      if (!isFieldDisplayNameInUsed) {
+        innerTableSelectionStringsArray.push(`${field.columnName}  as '${field.columnDisplayName}'`);
+      }
+      innerGroupByValues.push(`\`${field.columnDisplayName}\``);
+    } else if (field.type === FieldTypes.datetime) {
+      const dateFormatQuery = this.getConfigValueLiteral(field.dateFormat, dateFormat);
+
+      if (field.columnName !== table.statDateNameColumn) {
+        const tableColumnName = `${JOIN_TABLE_NOTATION}${tableIndex}.${field.columnName}`;
+        const formattedDateString = dbDateFormat(tableColumnName, `'${dateFormatQuery}'`);
+        outerQueryStatements.push(`${formattedDateString} as '${field.columnDisplayName}'`);
+        outerQueryFields.push(field.columnDisplayName);
+        groupByValues.push(`${formattedDateString}`);
+        innerTableSelectionStringsArray.push(field.columnName!);
+        innerGroupByValues.push(field.columnName!);
+      }
+
+      if (field.columnName === table.statDateNameColumn) {
+        groupByValues.push(`${REF_TABLE_KEY}.${DEFAULT_DATE_COLUMN}`);
+        const formattedOuterQueryGroupByString = dbDateFormat(
+          `${REF_TABLE_KEY}.${DEFAULT_DATE_COLUMN}`,
+          `'${dateFormatQuery}'`,
+        );
+        outerQueryStatements.push(`${formattedOuterQueryGroupByString} as '${field.columnDisplayName}'`);
+        outerQueryFields.push(field.columnDisplayName);
+        const formattedInnerQueryGroupByString = dbDateFormat(`'${field.columnName}'`, `'${dateFormatQuery}'`);
+        innerGroupByValues.push(formattedInnerQueryGroupByString);
+      }
+    } else {
+      // number / encrypted
+      numericAndEncryptedFields.push(field);
+      const encryptionKeyQuery = `(select confVal from ${this.coreDbName}.core_sys_config where confKey = '${SK.encryption}')`;
+      const decryptionString = dbDecrypt(field.columnName!, `(${encryptionKeyQuery})`);
+      const trValue = field.trValue == null ? '0' : field.trValue.toString();
+      let statement = '';
+      let outerStatement = `${field.operation}(${joinTableName}.\`${field.columnDisplayName}\`)`;
+
+      if (field.round) {
+        if (field.type === FieldTypes.number) {
+          const roundedString = dbRound(`${field.operation}(${field.columnName})`, trValue);
+          statement = ` ${dbIfNull(roundedString, '0')} as '${field.columnDisplayName}' `;
+        } else if (field.type === FieldTypes.encrypted) {
+          const roundedString = dbRound(`${field.operation}(${decryptionString})`, trValue);
+          statement = ` ${dbIfNull(roundedString, '0')} as '${field.columnDisplayName}' `;
+        }
+        outerStatement = dbRound(outerStatement, trValue);
+        innerTableQueryArray.push(statement);
+      } else if (field.trunc) {
+        if (field.type === FieldTypes.number) {
+          const truncatedString = dbTruncate(`${field.operation}(${field.columnName})`, trValue);
+          statement = ` ${dbIfNull(truncatedString, '0')} as '${field.columnDisplayName}' `;
+        } else if (field.type === FieldTypes.encrypted) {
+          const truncatedString = dbTruncate(`${field.operation}(${decryptionString})`, trValue);
+          statement = ` ${dbIfNull(truncatedString, '0')} as '${field.columnDisplayName}' `;
+        }
+        outerStatement = dbTruncate(outerStatement, trValue);
+        innerTableQueryArray.push(statement);
+      } else {
+        if (field.type === FieldTypes.number) {
+          statement = ` ${dbIfNull(`${field.operation}(${field.columnName})`, '0')} as '${field.columnDisplayName}' `;
+        } else if (field.type === FieldTypes.encrypted) {
+          statement = ` ${dbIfNull(`${field.operation}(${decryptionString})`, '0')} as '${field.columnDisplayName}' `;
+        }
+        innerTableQueryArray.push(statement);
+      }
+
+      outerQueryStatements.push(`${outerStatement} as '${field.columnDisplayName}'`);
+      outerQueryFields.push(field.columnDisplayName);
+    }
+
+    return alphaSelected;
+  }
+
+  // =========================================================================
+  // OBSERVABILITY — Private: observabilityOuterJoinProcessing
+  // =========================================================================
+
+  /**
+   * Build outer LEFT JOIN queries for Observability.
+   *
+   * Ported from v3 ObservabilityOutherJoinProcessing() (queryBuilder.service.ts:4327-4417).
+   * Same as widgetBuilderOuterJoinProcessing but with toDate support.
+   */
+  private observabilityOuterJoinProcessing(
+    outerLeftJoinQueryArray: string[],
+    tablesAdjustedNamesArray: string[],
+    tabularTables: ITabularTable[],
+    innerTableSelectionArray: string[],
+    outerLeftJoinQueryString: string,
+    innerQueryAlphaString: string,
+    specialParamsSelected: boolean,
+    innerQueryAlphaUnionsTable: string[],
+    alphaFieldsResults: FieldsResultDto[],
+    fromDate: string,
+    toDate: string | null,
+    refNodeNameValue: string,
+  ): string {
+    for (let outerLeftJoinIndex = 0; outerLeftJoinIndex < outerLeftJoinQueryArray.length; outerLeftJoinIndex++) {
+      const tableName = tablesAdjustedNamesArray[outerLeftJoinIndex];
+
+      if (tableName !== REF_TABLE_KEY) {
+        const table = tabularTables[outerLeftJoinIndex];
+
+        outerLeftJoinQueryArray[outerLeftJoinIndex] +=
+          ` ${JOIN_TABLE_NOTATION}${outerLeftJoinIndex}.${table.nodeNameColumn}=${REF_TABLE_KEY}.${refNodeNameValue} ${SPACE_AND_SPACE_KEY}`;
+        outerLeftJoinQueryArray[outerLeftJoinIndex] = outerLeftJoinQueryArray[outerLeftJoinIndex].replace(
+          OUTER_QUERY_INNER_VALUE_KEY,
+          innerTableSelectionArray[outerLeftJoinIndex],
+        );
+        outerLeftJoinQueryArray[outerLeftJoinIndex] = outerLeftJoinQueryArray[outerLeftJoinIndex].substring(
+          0,
+          outerLeftJoinQueryArray[outerLeftJoinIndex].length - SPACE_AND_SPACE_KEY.length,
+        );
+        outerLeftJoinQueryString += ` ${outerLeftJoinQueryArray[outerLeftJoinIndex]} `;
+
+        let dateConditionStr = `${table.statDateNameColumn} >= '${fromDate}'`;
+        if (toDate) {
+          dateConditionStr += ` and ${table.statDateNameColumn} <= '${toDate}'`;
+        }
+
+        if (innerQueryAlphaString.length > 0) {
+          if (specialParamsSelected) {
+            let innerQueryValue = `select ${table.nodeNameColumn} as ${NODE_NAME},max(${table.statDateNameColumn}) as ${DEFAULT_DATE_COLUMN} ${innerQueryAlphaString} `;
+            const groupby: string[] = [];
+            for (const alphaField of alphaFieldsResults) {
+              if (alphaField.tableName === table.tableName) {
+                const ifNullStr = dbIfNull(
+                  `(select ${alphaField.paramSelectedField} from ${this.dataDbName}.${alphaField.paramTableName} where ${alphaField.paramTableField} = ${alphaField.tableField})`,
+                  `"${UNKNOWN_KEY}"`,
+                );
+                innerQueryValue += `,  ${ifNullStr} as '${alphaField.displayName}' `;
+                groupby.push(`\`${alphaField.displayName}\``);
+              }
+            }
+            innerQueryValue += ` from ${table.tableName}  where  ${dateConditionStr} group by ${NODE_NAME} ${innerQueryAlphaString}, ${groupby.toString()} `;
+            innerQueryAlphaUnionsTable.push(innerQueryValue);
+          } else {
+            if (innerQueryAlphaString.includes(NODE_NAME)) {
+              const filteredInnerQueryAlphaString = innerQueryAlphaString
+                .split(' ')
+                .filter((word) => word !== NODE_NAME)
+                .join(' ')
+                .replace(/,\s*$/, '');
+
+              innerQueryAlphaUnionsTable.push(
+                `select ${table.nodeNameColumn} as ${NODE_NAME}, max(${table.statDateNameColumn}) as ${DEFAULT_DATE_COLUMN} ${filteredInnerQueryAlphaString}
+                from ${table.tableName}  where ${dateConditionStr} group by ${NODE_NAME} ${filteredInnerQueryAlphaString}`,
+              );
+            } else {
+              innerQueryAlphaUnionsTable.push(
+                `select ${table.nodeNameColumn} as ${NODE_NAME},max(${table.statDateNameColumn}) as ${DEFAULT_DATE_COLUMN} ${innerQueryAlphaString}
+                from ${table.tableName}  where ${dateConditionStr} group by ${NODE_NAME} ${innerQueryAlphaString}`,
+              );
+            }
+          }
+        } else {
+          if (specialParamsSelected) {
+            let innerQueryValue = `select ${table.nodeNameColumn} as ${NODE_NAME}, `;
+            for (const alphaField of alphaFieldsResults) {
+              const groupby: string[] = [];
+              if (alphaField.tableName === table.tableName) {
+                const ifNullStr = dbIfNull(
+                  `(select ${alphaField.paramSelectedField} from ${this.dataDbName}.${alphaField.paramTableName} where ${alphaField.paramTableField} = ${alphaField.tableField})`,
+                  `"${UNKNOWN_KEY}"`,
+                );
+                innerQueryValue += ` ${ifNullStr} as '${alphaField.displayName}' `;
+                groupby.push(`\`${alphaField.displayName}\``);
+              }
+              innerQueryValue += ` ,max(${table.statDateNameColumn}) as ${DEFAULT_DATE_COLUMN} from ${table.tableName}  where ${dateConditionStr} group by ${groupby.toString()}`;
+              innerQueryAlphaUnionsTable.push(innerQueryValue);
+            }
+          } else {
+            innerQueryAlphaUnionsTable.push(
+              `select ${table.nodeNameColumn} as ${NODE_NAME},max(${table.statDateNameColumn}) as ${DEFAULT_DATE_COLUMN}
+              from ${table.tableName} where  ${dateConditionStr} group by ${NODE_NAME}`,
+            );
+          }
+        }
+      }
+    }
+
+    return outerLeftJoinQueryString;
+  }
+
+  // =========================================================================
+  // OBSERVABILITY — Private: processObservabilityCompare
+  // =========================================================================
+
+  /**
+   * Process compare columns for Observability.
+   *
+   * Ported from v3 ProcessObservabilityCompare() (queryBuilder.service.ts:4073-4258).
+   * Key differences from processWidgetBuilderCompare():
+   * - Has toDate support for custom timeframe
+   * - Has dateFormat support
+   * - Tracks outerQueryFields
+   * - Compare date column (withStatDate) respects isMetric flag
+   */
+  private processObservabilityCompare(
+    tabularObject: {
+      compare: ICustomCompareColumn[];
+      control: ICustomControlColumn[];
+      operation: ICustomOperationColumn[];
+    },
+    fieldsArray: FieldsArrayDto[],
+    outerLeftJoinQueryArray: string[],
+    compareLeftJoinQueryString: string,
+    compareQueryStatements: string[],
+    header: ITabularHeader[],
+    compareColumns: Record<string, string>,
+    tabularTables: ITabularTable[],
+    fromDate: string,
+    toDate: string | null,
+    dateFormat: string,
+    noneAlphafieldsObject: Record<number, IReportField[]>,
+    outerQueryStatements: string[],
+    outerQueryFields: string[],
+    refTableIndex: number,
+  ): string {
+    let joinTableNumber = 0;
+
+    for (let comparisonIndex = 0; comparisonIndex < tabularObject.compare.length; comparisonIndex++) {
+      const comparisonColumn = tabularObject.compare[comparisonIndex];
+      const interval = comparisonColumn.timeFilter.toLowerCase();
+      const comparisonTimeValue = comparisonColumn.backPeriod;
+      const compareFieldArrayIndex = fieldsArray.findIndex((f) => f.draggedId === comparisonColumn.draggedId);
+
+      if (!comparisonColumn.isCustom) {
+        joinTableNumber++;
+
+        const compareField = fieldsArray.find(
+          (f) => f.draggedId === comparisonColumn.usedColumnId,
+        ) as IFieldsArrayEntry;
+        const compareTableIndex = compareField.tableIndex!;
+        let comparisonLeftJoin = outerLeftJoinQueryArray[compareTableIndex];
+
+        const compareJoinTableName = `${JOIN_TABLE_NOTATION}${compareTableIndex}Compare_${joinTableNumber}`;
+        const usedColumnName = compareField.columnDisplayName;
+
+        const joinTablesNamesRegex = new RegExp(`${JOIN_TABLE_NOTATION}${compareTableIndex}`, 'g');
+        comparisonLeftJoin = comparisonLeftJoin.replace(joinTablesNamesRegex, compareJoinTableName);
+
+        const statDateRegex = new RegExp(`${REF_TABLE_KEY}.${DEFAULT_DATE_COLUMN}`, 'g');
+        const addedDateString = dbDateAdd(
+          `${REF_TABLE_KEY}.${DEFAULT_DATE_COLUMN}`,
+          `-${comparisonTimeValue}`,
+          interval,
+        );
+        comparisonLeftJoin = comparisonLeftJoin.replace(statDateRegex, addedDateString);
+
+        const fromDateRegex = new RegExp(`'${fromDate}'`, 'g');
+        const fromDateString = dbDateAdd(`'${fromDate}'`, `-${comparisonTimeValue}`, interval);
+        comparisonLeftJoin = comparisonLeftJoin.replace(fromDateRegex, fromDateString);
+
+        if (toDate) {
+          const toDateRegex = new RegExp(`'${toDate}'`, 'g');
+          const toDateString = dbDateAdd(`'${toDate}'`, `-${comparisonTimeValue}`, interval);
+          comparisonLeftJoin = comparisonLeftJoin.replace(toDateRegex, toDateString);
+        }
+
+        comparisonLeftJoin = comparisonLeftJoin.replace(`max(${DEFAULT_DATE_COLUMN})`, DEFAULT_DATE_COLUMN);
+        compareLeftJoinQueryString += comparisonLeftJoin;
+
+        const tableNameWithOperation = `${comparisonColumn.operation}(${compareJoinTableName}.\`${usedColumnName}\`)`;
+
+        let comparisonSelectStatement = ` ${tableNameWithOperation} as \`${comparisonColumn.columnDisplayName}\``;
+        if (comparisonColumn.trunc) {
+          comparisonSelectStatement = ` ${dbTruncate(tableNameWithOperation, comparisonColumn.trValue.toString())} as \`${comparisonColumn.columnDisplayName}\``;
+        } else if (comparisonColumn.round) {
+          comparisonSelectStatement = ` ${dbRound(tableNameWithOperation, comparisonColumn.trValue.toString())} as \`${comparisonColumn.columnDisplayName}\``;
+        }
+
+        compareQueryStatements.push(comparisonSelectStatement);
+        outerQueryFields.push(comparisonColumn.columnDisplayName);
+
+        header.push({
+          text: comparisonColumn.columnDisplayName,
+          datafield: comparisonColumn.columnDisplayName,
+          draggedId: comparisonColumn.draggedId,
+          aggregates: comparisonColumn.footerAggregation || [],
+          pinned: comparisonColumn.pinned,
+          hidden: comparisonColumn.hidden,
+          headerColumnType: comparisonColumn.type,
+          index: comparisonColumn.index,
+        });
+
+        compareColumns[comparisonColumn.columnDisplayName] = ` ${tableNameWithOperation}`;
+        if (compareFieldArrayIndex >= 0) {
+          (fieldsArray[compareFieldArrayIndex] as ICustomColumnEntry).builtString =
+            compareColumns[comparisonColumn.columnDisplayName];
+        }
+      } else {
+        // Custom compare column
+        const comparedToField = fieldsArray.find(
+          (f) => f.draggedId === comparisonColumn.usedColumnId,
+        ) as ICustomColumnEntry;
+
+        const builtCustomField =
+          comparedToField.customColumnType === CustomColumnType.CASE ||
+          comparedToField.customColumnType === CustomColumnType.PRIORITY
+            ? this.buildControlString(
+                tabularObject.control[comparedToField.index!],
+                fieldsArray,
+                compareColumns,
+                tabularObject as unknown as GenerateReportDto,
+              )
+            : this.buildOperationString(
+                tabularObject.operation[comparedToField.index!],
+                fieldsArray,
+                compareColumns,
+                tabularObject as unknown as GenerateReportDto,
+              );
+
+        let compareQueryToAdd = builtCustomField.sql;
+        comparisonColumn.tablesUsed = [...builtCustomField.tableUsed];
+
+        for (let tableUsedIndex = 0; tableUsedIndex < comparisonColumn.tablesUsed!.length; tableUsedIndex++) {
+          const compareTableId = comparisonColumn.tablesUsed![tableUsedIndex];
+          joinTableNumber++;
+
+          const compareTableIndex = tabularTables.findIndex((t) => t.id === compareTableId);
+          if (compareTableIndex === refTableIndex) continue;
+
+          let comparisonLeftJoin = outerLeftJoinQueryArray[compareTableIndex];
+
+          const joinTablesNamesRegex = new RegExp(`${JOIN_TABLE_NOTATION}${compareTableIndex}`, 'g');
+          const compareJoinTableName = `${JOIN_TABLE_NOTATION}${compareTableIndex}Compare_${joinTableNumber}`;
+          comparisonLeftJoin = comparisonLeftJoin.replace(joinTablesNamesRegex, compareJoinTableName);
+
+          const statDateRegex = new RegExp(`${REF_TABLE_KEY}.${DEFAULT_DATE_COLUMN}`, 'g');
+          const addedDateString = dbDateAdd(
+            `${REF_TABLE_KEY}.${DEFAULT_DATE_COLUMN}`,
+            `-${comparisonTimeValue}`,
+            interval,
+          );
+          comparisonLeftJoin = comparisonLeftJoin.replace(statDateRegex, addedDateString);
+
+          const fromDateRegex = new RegExp(`'${fromDate}'`, 'g');
+          const fromDateString = dbDateAdd(`'${fromDate}'`, `-${comparisonTimeValue}`, interval);
+          comparisonLeftJoin = comparisonLeftJoin.replace(fromDateRegex, fromDateString);
+
+          if (toDate) {
+            const toDateRegex = new RegExp(`'${toDate}'`, 'g');
+            const toDateString = dbDateAdd(`'${toDate}'`, `-${comparisonTimeValue}`, interval);
+            comparisonLeftJoin = comparisonLeftJoin.replace(toDateRegex, toDateString);
+          }
+
+          comparisonLeftJoin = comparisonLeftJoin.replace(`max(${DEFAULT_DATE_COLUMN})`, DEFAULT_DATE_COLUMN);
+          compareLeftJoinQueryString += ` ${comparisonLeftJoin} `;
+
+          if (noneAlphafieldsObject[compareTableIndex]) {
+            for (const field of noneAlphafieldsObject[compareTableIndex]) {
+              outerQueryStatements.push(
+                `${field.operation}(${compareJoinTableName}.\`${field.columnDisplayName}\`) as \`${field.columnDisplayName}_Compare_${comparisonIndex}\``,
+              );
+              outerQueryFields.push(`\`${field.columnDisplayName}_Compare_${comparisonIndex}\``);
+            }
+          }
+
+          const compareTablesNamesRegex = new RegExp(`${JOIN_TABLE_NOTATION}${compareTableIndex}\\.`, 'g');
+          compareQueryToAdd = compareQueryToAdd.replace(compareTablesNamesRegex, compareJoinTableName + '.');
+        }
+
+        if (comparisonColumn.trunc) {
+          compareQueryStatements.push(
+            ` ${dbTruncate(compareQueryToAdd, comparisonColumn.trValue.toString())} as \`${comparisonColumn.columnDisplayName}\``,
+          );
+          outerQueryFields.push(comparisonColumn.columnDisplayName);
+        } else if (comparisonColumn.round) {
+          compareQueryStatements.push(
+            ` ${dbRound(compareQueryToAdd, comparisonColumn.trValue.toString())} as \`${comparisonColumn.columnDisplayName}\``,
+          );
+          outerQueryFields.push(comparisonColumn.columnDisplayName);
+        } else {
+          compareQueryStatements.push(` ${compareQueryToAdd} as \`${comparisonColumn.columnDisplayName}\``);
+          outerQueryFields.push(comparisonColumn.columnDisplayName);
+        }
+
+        header.push({
+          text: comparisonColumn.columnDisplayName,
+          datafield: comparisonColumn.columnDisplayName,
+          draggedId: comparisonColumn.draggedId,
+          aggregates: comparisonColumn.footerAggregation || [],
+          pinned: comparisonColumn.pinned,
+          hidden: comparisonColumn.hidden,
+          headerColumnType: comparisonColumn.type,
+          index: comparisonColumn.index,
+        });
+
+        compareColumns[comparisonColumn.columnDisplayName] = compareQueryToAdd;
+        if (compareFieldArrayIndex >= 0) {
+          (fieldsArray[compareFieldArrayIndex] as ICustomColumnEntry).builtString =
+            compareColumns[comparisonColumn.columnDisplayName];
+        }
+      }
+
+      // Compare date column (withStatDate)
+      if (comparisonColumn.withStatDate) {
+        const dateFormatQuery = this.getConfigValueLiteral(SK.dateFormat1, dateFormat);
+        const addedDateString = dbDateAdd(
+          `${REF_TABLE_KEY}.${DEFAULT_DATE_COLUMN}`,
+          `-${comparisonTimeValue}`,
+          interval,
+        );
+        const dateFormatString = dbDateFormat(addedDateString, `'${dateFormatQuery}'`);
+
+        if (comparisonColumn.isMetric) {
+          compareQueryStatements.push(
+            `${dateFormatString} as '${comparisonColumn.columnDisplayName}${CUSTOM_DATE_COLUMN}'`,
+          );
+          outerQueryFields.push(`${comparisonColumn.columnDisplayName}${CUSTOM_DATE_COLUMN}`);
+
+          header.push({
+            text: comparisonColumn.columnDisplayName + CUSTOM_DATE_COLUMN,
+            datafield: comparisonColumn.columnDisplayName + CUSTOM_DATE_COLUMN,
+            aggregates: ['count'],
+            pinned: comparisonColumn.pinned,
+            draggedId: comparisonColumn.draggedId + CUSTOM_DATE_COLUMN,
+            hidden: comparisonColumn.hidden,
+            headerColumnType: FieldTypes.datetime,
+            index: comparisonColumn.index,
+          });
+        }
+      }
+    }
+
+    return compareLeftJoinQueryString;
+  }
+
+  // =========================================================================
+  // OBSERVABILITY — Private: observabilityControlColumnsProcessing
+  // =========================================================================
+
+  /**
+   * Process control (CASE/WHEN) columns for Observability.
+   *
+   * Ported from v3 observabilityControlColumnsProcessing() (queryBuilder.service.ts:923-961).
+   * Same as controlColumnsProcessing but also populates outerQueryFields.
+   */
+  private observabilityControlColumnsProcessing(
+    tabularObject: {
+      control: ICustomControlColumn[];
+      compare: ICustomCompareColumn[];
+      operation: ICustomOperationColumn[];
+    },
+    fieldsArray: FieldsArrayDto[],
+    compareColumns: Record<string, string>,
+    switchQueryStatements: string[],
+    outerQueryFields: string[],
+    header: ITabularHeader[],
+  ): void {
+    for (const controlColumn of tabularObject.control) {
+      const switchField = this.buildControlString(
+        controlColumn,
+        fieldsArray,
+        compareColumns,
+        tabularObject as unknown as GenerateReportDto,
+      );
+      const fieldIdx = fieldsArray.findIndex((f) => f.draggedId === controlColumn.draggedId);
+      if (fieldIdx >= 0) (fieldsArray[fieldIdx] as ICustomColumnEntry).builtString = switchField.sql;
+
+      if (controlColumn.type === FieldTypes.number) {
+        if (controlColumn.trunc) {
+          const truncatedString = dbTruncate(
+            `cast(${switchField.sql} as ${NUMERIC_CAST})`,
+            controlColumn.trValue.toString(),
+          );
+          switchQueryStatements.push(` ${truncatedString} as  \`${controlColumn.columnDisplayName}\``);
+          outerQueryFields.push(controlColumn.columnDisplayName);
+        } else if (controlColumn.round) {
+          const roundedString = dbRound(
+            `cast(${switchField.sql} as ${NUMERIC_CAST})`,
+            controlColumn.trValue.toString(),
+          );
+          switchQueryStatements.push(` ${roundedString}  as  \`${controlColumn.columnDisplayName}\``);
+          outerQueryFields.push(controlColumn.columnDisplayName);
+        } else {
+          switchQueryStatements.push(
+            ` cast(${switchField.sql} as ${NUMERIC_CAST}) as  \`${controlColumn.columnDisplayName}\``,
+          );
+          outerQueryFields.push(controlColumn.columnDisplayName);
+        }
+      } else {
+        switchQueryStatements.push(` ${switchField.sql} as  \`${controlColumn.columnDisplayName}\``);
+        outerQueryFields.push(controlColumn.columnDisplayName);
+      }
+
+      header.push({
+        text: controlColumn.columnDisplayName,
+        datafield: controlColumn.columnDisplayName,
+        draggedId: controlColumn.draggedId,
+        aggregates: controlColumn.footerAggregation || [],
+        pinned: controlColumn.pinned,
+        hidden: controlColumn.hidden,
+        headerColumnType: controlColumn.type,
+        index: controlColumn.index,
+      });
+    }
+  }
+
+  // =========================================================================
+  // OBSERVABILITY — Private: observabilityOperationColumnsProcessing
+  // =========================================================================
+
+  /**
+   * Process operation columns for Observability.
+   *
+   * Ported from v3 observabilityOperationColumnsProcessing() (queryBuilder.service.ts:852-886).
+   * Same as operationColumnsProcessing but also populates outerQueryFields.
+   */
+  private observabilityOperationColumnsProcessing(
+    tabularObject: {
+      operation: ICustomOperationColumn[];
+      control: ICustomControlColumn[];
+      compare: ICustomCompareColumn[];
+    },
+    fieldsArray: FieldsArrayDto[],
+    compareColumns: Record<string, string>,
+    operationQueryStatements: string[],
+    outerQueryFields: string[],
+    header: ITabularHeader[],
+  ): void {
+    for (const operationColumn of tabularObject.operation) {
+      const operationField = this.buildOperationString(
+        operationColumn,
+        fieldsArray,
+        compareColumns,
+        tabularObject as unknown as GenerateReportDto,
+      );
+      const fieldIdx = fieldsArray.findIndex((f) => f.draggedId === operationColumn.draggedId);
+      if (fieldIdx >= 0) (fieldsArray[fieldIdx] as ICustomColumnEntry).builtString = operationField.sql;
+
+      if (operationColumn.trunc) {
+        const truncatedString = dbTruncate(operationField.sql, operationColumn.trValue.toString());
+        operationQueryStatements.push(` ${truncatedString} as \`${operationColumn.columnDisplayName}\``);
+        outerQueryFields.push(operationColumn.columnDisplayName);
+      } else if (operationColumn.round) {
+        const roundedString = dbRound(operationField.sql, operationColumn.trValue.toString());
+        operationQueryStatements.push(`${roundedString}  as \`${operationColumn.columnDisplayName}\``);
+        outerQueryFields.push(operationColumn.columnDisplayName);
+      } else {
+        operationQueryStatements.push(` ${operationField.sql} as \`${operationColumn.columnDisplayName}\``);
+        outerQueryFields.push(operationColumn.columnDisplayName);
+      }
+
+      header.push({
+        text: operationColumn.columnDisplayName,
+        datafield: operationColumn.columnDisplayName,
+        draggedId: operationColumn.draggedId,
+        aggregates: operationColumn.footerAggregation || [],
+        pinned: operationColumn.pinned,
+        hidden: operationColumn.hidden,
+        headerColumnType: operationColumn.type,
+        index: operationColumn.index,
+      });
+    }
+  }
+
+  // =========================================================================
+  // OBSERVABILITY — Private: isMetricExploded
+  // =========================================================================
+
+  /**
+   * Check if any field in the metric data has isExplodedBy set.
+   *
+   * Ported from v3 isMetricExploded() (core/utils/chart.util.ts:655-674).
+   */
+  private isMetricExploded(data: {
+    tables: IMinimalTabularTable[];
+    compare: ICustomCompareColumn[];
+    operation: ICustomOperationColumn[];
+    control: ICustomControlColumn[];
+  }): boolean {
+    for (const table of data.tables) {
+      for (const field of table.fields) {
+        if (field.isExplodedBy === true) {
+          return true;
+        }
+      }
+    }
+
+    const sections = [...(data.compare || []), ...(data.operation || []), ...(data.control || [])] as Array<{
+      isExplodedBy?: boolean;
+    }>;
+    for (const section of sections) {
+      if (section.isExplodedBy === true) {
+        return true;
+      }
+    }
+
+    return false;
   }
 }

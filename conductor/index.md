@@ -12,7 +12,7 @@ Navigation hub for project context.
 
 ## Active Tracks
 
-- [ ] **[Phase 3.4: Dashboards, RotatingDashboard & DataAnalysis](./tracks/phase3.4-dashboards_20260305/index.md)** — Dashboard (10 endpoints), RotatingDashboard (9 endpoints), DataAnalysis (12 endpoints)
+- [ ] **[Phase 3.5: Monitoring (Observability, Connectivity, Notifications)](./tracks/phase3.5-monitoring_20260311/index.md)** — Observability (30 endpoints), Connectivity (3 endpoints), Notifications (6 endpoints)
 
 ## Completed Tracks
 
@@ -22,6 +22,7 @@ Navigation hub for project context.
 - [x] Phase 3.2: Core Features (Modules, Parameters, NodeDefinition)
 - [x] Phase 3.3.1: Reports Module
 - [x] Phase 3.3.2: WidgetBuilder, QBE & Remaining Reporting
+- [x] Phase 3.4: Dashboards, RotatingDashboard & DataAnalysis
 
 ## Getting Started
 
