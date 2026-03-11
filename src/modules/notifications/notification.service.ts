@@ -88,16 +88,8 @@ export class NotificationService {
     const results = await this.settingsRepo
       .createQueryBuilder('n_setting')
       .innerJoin('n_setting.notificationUsers', 'n_users', 'n_users.userId = :userId', { userId })
-      .innerJoin(
-        'core_widget_builder',
-        'wb',
-        'wb.id = n_setting.widgetBuilderId',
-      )
-      .innerJoin(
-        'core_widget_builder_charts',
-        'wbc',
-        'wbc.id = n_setting.chartId',
-      )
+      .innerJoin('core_widget_builder', 'wb', 'wb.id = n_setting.widgetBuilderId')
+      .innerJoin('core_widget_builder_charts', 'wbc', 'wbc.id = n_setting.chartId')
       .select([
         'n_setting.id AS id',
         'wb.id AS widgetBuilderId',
@@ -110,7 +102,7 @@ export class NotificationService {
       ])
       .groupBy('n_setting.widgetBuilderId')
       .addGroupBy('n_setting.chartId')
-      .orderBy('GREATEST(n_setting.createdAt, COALESCE(n_setting.updatedAt, \'1973-01-01\'))', 'DESC')
+      .orderBy("GREATEST(n_setting.createdAt, COALESCE(n_setting.updatedAt, '1973-01-01'))", 'DESC')
       .getRawMany();
 
     return results;
