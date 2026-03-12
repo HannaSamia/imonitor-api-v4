@@ -79,28 +79,22 @@ describe('CustomerCareSdpTraceService', () => {
     it('should throw BadRequestException when no SDP config is found', async () => {
       jest.spyOn(service as any, 'getSdpSshConfig').mockResolvedValue([]);
 
-      await expect(service.setTrace(MOCK_SDP_VIP, MOCK_MSISDN, MOCK_USER_ID)).rejects.toThrow(
-        BadRequestException,
-      );
+      await expect(service.setTrace(MOCK_SDP_VIP, MOCK_MSISDN, MOCK_USER_ID)).rejects.toThrow(BadRequestException);
     });
 
     it('should throw BadRequestException when config has missing credentials', async () => {
-      jest.spyOn(service as any, 'getSdpSshConfig').mockResolvedValue([
-        { ip_address: '', ssh_user: '', ssh_pass: '', gui_user: '', gui_pass: '' },
-      ]);
+      jest
+        .spyOn(service as any, 'getSdpSshConfig')
+        .mockResolvedValue([{ ip_address: '', ssh_user: '', ssh_pass: '', gui_user: '', gui_pass: '' }]);
 
-      await expect(service.setTrace(MOCK_SDP_VIP, MOCK_MSISDN, MOCK_USER_ID)).rejects.toThrow(
-        BadRequestException,
-      );
+      await expect(service.setTrace(MOCK_SDP_VIP, MOCK_MSISDN, MOCK_USER_ID)).rejects.toThrow(BadRequestException);
     });
 
     it('should throw BadRequestException when remote path does not exist', async () => {
       jest.spyOn(service as any, 'getSdpSshConfig').mockResolvedValue([MOCK_SDP_CONFIG]);
       jest.spyOn(service as any, 'sftpStat').mockRejectedValue(new Error('not found'));
 
-      await expect(service.setTrace(MOCK_SDP_VIP, MOCK_MSISDN, MOCK_USER_ID)).rejects.toThrow(
-        BadRequestException,
-      );
+      await expect(service.setTrace(MOCK_SDP_VIP, MOCK_MSISDN, MOCK_USER_ID)).rejects.toThrow(BadRequestException);
     });
 
     it('should throw BadRequestException when FDSRequestSender fails', async () => {
@@ -169,9 +163,7 @@ describe('CustomerCareSdpTraceService', () => {
     it('should throw BadRequestException when no SDP config is found', async () => {
       jest.spyOn(service as any, 'getSdpSshConfig').mockResolvedValue([]);
 
-      await expect(service.unsetTrace(MOCK_SDP_VIP, MOCK_MSISDN, MOCK_USER_ID)).rejects.toThrow(
-        BadRequestException,
-      );
+      await expect(service.unsetTrace(MOCK_SDP_VIP, MOCK_MSISDN, MOCK_USER_ID)).rejects.toThrow(BadRequestException);
     });
 
     it('should throw BadRequestException when FDSRequestSender fails', async () => {
@@ -234,26 +226,26 @@ describe('CustomerCareSdpTraceService', () => {
     it('should throw BadRequestException when time range exceeds 10 minutes', async () => {
       dateHelperService.differenceInMinutes.mockReturnValue(15);
 
-      await expect(
-        service.fetchTrace(fromTime, toTime, MOCK_SDP_VIP, MOCK_MSISDN),
-      ).rejects.toThrow(BadRequestException);
+      await expect(service.fetchTrace(fromTime, toTime, MOCK_SDP_VIP, MOCK_MSISDN)).rejects.toThrow(
+        BadRequestException,
+      );
     });
 
     it('should throw BadRequestException when no SDP configs are found', async () => {
       jest.spyOn(service as any, 'getSdpSshConfig').mockResolvedValue([]);
 
-      await expect(
-        service.fetchTrace(fromTime, toTime, MOCK_SDP_VIP, MOCK_MSISDN),
-      ).rejects.toThrow(ErrorMessages.CC_MISSING_SDP_VIP_CONFIG);
+      await expect(service.fetchTrace(fromTime, toTime, MOCK_SDP_VIP, MOCK_MSISDN)).rejects.toThrow(
+        ErrorMessages.CC_MISSING_SDP_VIP_CONFIG,
+      );
     });
 
     it('should throw BadRequestException when all nodes fail', async () => {
       jest.spyOn(service as any, 'getSdpSshConfig').mockResolvedValue([MOCK_SDP_CONFIG]);
       jest.spyOn(service as any, 'executeSshCommand').mockRejectedValue(new Error('ssh fail'));
 
-      await expect(
-        service.fetchTrace(fromTime, toTime, MOCK_SDP_VIP, MOCK_MSISDN),
-      ).rejects.toThrow(ErrorMessages.CC_TRACE_DATA_FAILURE);
+      await expect(service.fetchTrace(fromTime, toTime, MOCK_SDP_VIP, MOCK_MSISDN)).rejects.toThrow(
+        ErrorMessages.CC_TRACE_DATA_FAILURE,
+      );
     });
 
     it('should return "No trace was found!" when SSH returns empty', async () => {
@@ -292,10 +284,7 @@ describe('CustomerCareSdpTraceService', () => {
     });
 
     it('should skip nodes with missing credentials', async () => {
-      const configs = [
-        { ip_address: '', ssh_user: '', ssh_pass: '', gui_user: '', gui_pass: '' },
-        MOCK_SDP_CONFIG,
-      ];
+      const configs = [{ ip_address: '', ssh_user: '', ssh_pass: '', gui_user: '', gui_pass: '' }, MOCK_SDP_CONFIG];
       jest.spyOn(service as any, 'getSdpSshConfig').mockResolvedValue(configs);
       const sshSpy = jest.spyOn(service as any, 'executeSshCommand').mockResolvedValue('data|');
 
@@ -361,35 +350,35 @@ describe('CustomerCareSdpTraceService', () => {
     it('should throw BadRequestException when time range exceeds 10 minutes', async () => {
       dateHelperService.differenceInMinutes.mockReturnValue(15);
 
-      await expect(
-        service.exportSdpTraceRawText(fromTime, toTime, MOCK_SDP_VIP, MOCK_MSISDN),
-      ).rejects.toThrow(BadRequestException);
+      await expect(service.exportSdpTraceRawText(fromTime, toTime, MOCK_SDP_VIP, MOCK_MSISDN)).rejects.toThrow(
+        BadRequestException,
+      );
     });
 
     it('should throw BadRequestException when no configs found', async () => {
       jest.spyOn(service as any, 'getSdpSshConfig').mockResolvedValue([]);
 
-      await expect(
-        service.exportSdpTraceRawText(fromTime, toTime, MOCK_SDP_VIP, MOCK_MSISDN),
-      ).rejects.toThrow(ErrorMessages.CC_MISSING_SDP_VIP_CONFIG);
+      await expect(service.exportSdpTraceRawText(fromTime, toTime, MOCK_SDP_VIP, MOCK_MSISDN)).rejects.toThrow(
+        ErrorMessages.CC_MISSING_SDP_VIP_CONFIG,
+      );
     });
 
     it('should throw BadRequestException when all nodes fail', async () => {
       jest.spyOn(service as any, 'getSdpSshConfig').mockResolvedValue([MOCK_SDP_CONFIG]);
       jest.spyOn(service as any, 'executeSshCommand').mockRejectedValue(new Error('fail'));
 
-      await expect(
-        service.exportSdpTraceRawText(fromTime, toTime, MOCK_SDP_VIP, MOCK_MSISDN),
-      ).rejects.toThrow(ErrorMessages.CC_TRACE_DATA_FAILURE);
+      await expect(service.exportSdpTraceRawText(fromTime, toTime, MOCK_SDP_VIP, MOCK_MSISDN)).rejects.toThrow(
+        ErrorMessages.CC_TRACE_DATA_FAILURE,
+      );
     });
 
     it('should throw BadRequestException when no trace data found', async () => {
       jest.spyOn(service as any, 'getSdpSshConfig').mockResolvedValue([MOCK_SDP_CONFIG]);
       jest.spyOn(service as any, 'executeSshCommand').mockResolvedValue('');
 
-      await expect(
-        service.exportSdpTraceRawText(fromTime, toTime, MOCK_SDP_VIP, MOCK_MSISDN),
-      ).rejects.toThrow(ErrorMessages.CC_NO_TRACE_FOUND);
+      await expect(service.exportSdpTraceRawText(fromTime, toTime, MOCK_SDP_VIP, MOCK_MSISDN)).rejects.toThrow(
+        ErrorMessages.CC_NO_TRACE_FOUND,
+      );
     });
 
     it('should write raw text to file and return file path', async () => {

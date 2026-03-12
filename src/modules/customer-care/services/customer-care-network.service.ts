@@ -205,10 +205,7 @@ export class CustomerCareNetworkService {
    * Fetches cisHost and cisPort, constructs the standard CAI3G path.
    */
   private async buildCai3gUrl(): Promise<string> {
-    const config = await this.systemConfigService.getConfigValues([
-      SystemKeys.cisHost,
-      SystemKeys.cisPort,
-    ]);
+    const config = await this.systemConfigService.getConfigValues([SystemKeys.cisHost, SystemKeys.cisPort]);
     const host = config[SystemKeys.cisHost];
     const port = config[SystemKeys.cisPort];
 
@@ -223,10 +220,7 @@ export class CustomerCareNetworkService {
    * Fetch CAI3G SOAP credentials from system config.
    */
   private async getCai3gCredentials(): Promise<{ username: string; password: string }> {
-    const config = await this.systemConfigService.getConfigValues([
-      SystemKeys.cisUserName,
-      SystemKeys.cisPassword,
-    ]);
+    const config = await this.systemConfigService.getConfigValues([SystemKeys.cisUserName, SystemKeys.cisPassword]);
     return {
       username: config[SystemKeys.cisUserName] || '',
       password: config[SystemKeys.cisPassword] || '',
@@ -259,12 +253,8 @@ export class CustomerCareNetworkService {
         imsi: this.extractNumber(data, 'imsi'),
         oick: this.extractNumber(data, 'oick'),
         csp: this.extractNumber(data, 'csp'),
-        vlrAddress: this.has(locationData, 'vlrAddress')
-          ? String(locationData.vlrAddress)
-          : 'unknown',
-        sgsnNumber: this.has(locationData, 'sgsnNumber')
-          ? Number(locationData.sgsnNumber)
-          : undefined,
+        vlrAddress: this.has(locationData, 'vlrAddress') ? String(locationData.vlrAddress) : 'unknown',
+        sgsnNumber: this.has(locationData, 'sgsnNumber') ? Number(locationData.sgsnNumber) : undefined,
         vlrData: this.has(data, 'vlrData') ? String(data.vlrData) : 'unknown',
         ts11: this.extractNumber(data, 'ts11'),
         ts21: this.extractNumber(data, 'ts21'),
@@ -307,9 +297,7 @@ export class CustomerCareNetworkService {
         hss_imsi: this.has(data, 'ns:imsi') ? Number(data['ns:imsi']) : 0,
         hss_profileId: this.has(data, 'ns:epsProfileId') ? Number(data['ns:epsProfileId']) : 0,
         hss_odb: this.has(data, 'ns:epsOdb') ? String(data['ns:epsOdb']) : 'unknown',
-        epsRoamingAllowed: this.has(data, 'epsRoamingAllowed')
-          ? Boolean(data.epsRoamingAllowed)
-          : undefined,
+        epsRoamingAllowed: this.has(data, 'epsRoamingAllowed') ? Boolean(data.epsRoamingAllowed) : undefined,
         epsIndividualDefaultContextId: this.has(data, 'epsIndividualDefaultContextId')
           ? Number(data.epsIndividualDefaultContextId)
           : undefined,
@@ -369,12 +357,14 @@ export class CustomerCareNetworkService {
         unconditionalCondition: this.has(opConditions, 'unconditional-condition')
           ? String(opConditions['unconditional-condition'])
           : 'unknown',
-        cdivActionTarget: cdivActions && this.has(cdivActions, 'forward-to')
-          ? String(((cdivActions['forward-to'] as Record<string, unknown>)?.target) || 'unknown')
-          : 'unknown',
-        cdivActionNotifyCaller: cdivActions && this.has(cdivActions, 'forward-to')
-          ? Boolean(((cdivActions['forward-to'] as Record<string, unknown>)?.['notify-caller']))
-          : false,
+        cdivActionTarget:
+          cdivActions && this.has(cdivActions, 'forward-to')
+            ? String((cdivActions['forward-to'] as Record<string, unknown>)?.target || 'unknown')
+            : 'unknown',
+        cdivActionNotifyCaller:
+          cdivActions && this.has(cdivActions, 'forward-to')
+            ? Boolean((cdivActions['forward-to'] as Record<string, unknown>)?.['notify-caller'])
+            : false,
       };
     } catch (error) {
       this.logger.error('Failed to parse MTAS result', (error as Error).stack);
@@ -398,10 +388,7 @@ export class CustomerCareNetworkService {
     try {
       ca = await fsPromises.readFile(httpConfig.CertificatePath);
     } catch (error) {
-      this.logger.warn(
-        `Could not read CIS CA certificate at ${httpConfig.CertificatePath}`,
-        (error as Error).message,
-      );
+      this.logger.warn(`Could not read CIS CA certificate at ${httpConfig.CertificatePath}`, (error as Error).message);
     }
 
     const agent = new https.Agent({
@@ -438,10 +425,7 @@ export class CustomerCareNetworkService {
       throw new BadRequestException(ErrorMessages.ERROR_OCCURED);
     }
 
-    const fulfillment = (parsed as Record<string, unknown>).fulfillmentService as Record<
-      string,
-      unknown
-    >;
+    const fulfillment = (parsed as Record<string, unknown>).fulfillmentService as Record<string, unknown>;
 
     if (String(fulfillment.status) !== 'SUCCESS') {
       this.logger.warn('CIS response status is not SUCCESS', JSON.stringify(fulfillment));

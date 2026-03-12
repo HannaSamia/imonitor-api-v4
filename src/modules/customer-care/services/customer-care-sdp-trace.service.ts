@@ -21,8 +21,7 @@ const PATH_EXPORT =
   'PATH=/opt/EABpython/bin:/usr/bin:/usr/sbin:/usr/dt/bin:/usr/sfw/bin:/usr/openwin/bin:/opt/EABfds/bin:/opt/EABcsutls/bin:/opt/EABcsConfig/bin:/opt/EABfdslic/bin:/opt/TimesTen/bin:/opt/EABcss7uthd/bin:/opt/sign/EABss7024/bin:/opt/sign/EABss7023/bin; export PATH';
 
 /** FDSRequestSender LD_LIBRARY_PATH export for SDP nodes */
-const LD_EXPORT =
-  'LD_LIBRARY_PATH=/opt/EABpython/lib:/opt/EABfds/lib:/opt/EABfdslic/lib; export LD_LIBRARY_PATH';
+const LD_EXPORT = 'LD_LIBRARY_PATH=/opt/EABpython/lib:/opt/EABfds/lib:/opt/EABfdslic/lib; export LD_LIBRARY_PATH';
 
 /** Routes to trace in the AddTarget/RemoveTarget XML request */
 const SDP_TRACE_ROUTES = [
@@ -169,13 +168,7 @@ export class CustomerCareSdpTraceService {
    * @param raw If true, use processRawTrace; otherwise also use processRawTrace (complex ProcessTrace deferred)
    * @returns HTML-formatted trace string
    */
-  async fetchTrace(
-    fromTime: string,
-    toTime: string,
-    sdpVIP: string,
-    msisdn: string,
-    raw = false,
-  ): Promise<string> {
+  async fetchTrace(fromTime: string, toTime: string, sdpVIP: string, msisdn: string, raw = false): Promise<string> {
     this.validateTraceTimeRange(fromTime, toTime);
 
     // Get ALL nodes for this VIP (not just live ones)
@@ -202,12 +195,7 @@ export class CustomerCareSdpTraceService {
         continue;
       }
       try {
-        const result = await this.executeSshCommand(
-          config.ip_address,
-          config.ssh_user,
-          config.ssh_pass,
-          grepCommand,
-        );
+        const result = await this.executeSshCommand(config.ip_address, config.ssh_user, config.ssh_pass, grepCommand);
         if (result) {
           combinedOutput += result;
         }
@@ -233,12 +221,7 @@ export class CustomerCareSdpTraceService {
    * Export SDP trace as an HTML file (provider-mapped).
    * Mirrors v3 lines 1829-1841.
    */
-  async exportSdpTraceHtml(
-    fromTime: string,
-    toTime: string,
-    sdpVIP: string,
-    msisdn: string,
-  ): Promise<string> {
+  async exportSdpTraceHtml(fromTime: string, toTime: string, sdpVIP: string, msisdn: string): Promise<string> {
     const traceContent = await this.fetchTrace(fromTime, toTime, sdpVIP, msisdn, false);
     const htmlDocument = this.wrapInHtmlDocument(traceContent);
     return this.exportHelperService.exportHtml(htmlDocument);
@@ -263,12 +246,7 @@ export class CustomerCareSdpTraceService {
    * Export SDP trace as a raw text file.
    * Mirrors v3 lines 1857-1932.
    */
-  async exportSdpTraceRawText(
-    fromTime: string,
-    toTime: string,
-    sdpVIP: string,
-    msisdn: string,
-  ): Promise<string> {
+  async exportSdpTraceRawText(fromTime: string, toTime: string, sdpVIP: string, msisdn: string): Promise<string> {
     this.validateTraceTimeRange(fromTime, toTime);
 
     const configs = await this.getSdpSshConfig(sdpVIP, false);
@@ -290,12 +268,7 @@ export class CustomerCareSdpTraceService {
         continue;
       }
       try {
-        const result = await this.executeSshCommand(
-          config.ip_address,
-          config.ssh_user,
-          config.ssh_pass,
-          grepCommand,
-        );
+        const result = await this.executeSshCommand(config.ip_address, config.ssh_user, config.ssh_pass, grepCommand);
         if (result) {
           combinedOutput += result;
         }
@@ -342,11 +315,7 @@ export class CustomerCareSdpTraceService {
       AES_DECRYPT(gui_pass, (${encKeySubQuery})) AS gui_pass
       FROM \`${dataDb}\`.V3_sdp_nodes WHERE vip = ?`;
 
-    const params: (string | number)[] = [
-      SystemKeys.aesEncryptionKey,
-      SystemKeys.aesEncryptionKey,
-      sdpVIP,
-    ];
+    const params: (string | number)[] = [SystemKeys.aesEncryptionKey, SystemKeys.aesEncryptionKey, sdpVIP];
 
     if (isLiveOnly) {
       query += ' AND is_live = 1';
@@ -358,12 +327,7 @@ export class CustomerCareSdpTraceService {
   /**
    * Record a trace set/unset operation in core_trace_tracker.
    */
-  private async trackTrace(
-    status: 'set' | 'unset',
-    node: string,
-    phoneNumber: string,
-    userId: string,
-  ): Promise<void> {
+  private async trackTrace(status: 'set' | 'unset', node: string, phoneNumber: string, userId: string): Promise<void> {
     const tracker = this.traceTrackerRepo.create({
       status: status === 'set' ? TraceTrackerStatus.SET : TraceTrackerStatus.UNSET,
       node,
@@ -408,10 +372,7 @@ export class CustomerCareSdpTraceService {
 
       // Bold Info: Provider: lines with red provider name
       if (/Info:\s*Provider:/.test(processed)) {
-        processed = processed.replace(
-          /(Provider:\s*)([^\s<]+)/,
-          '$1<span style="color:red"><b>$2</b></span>',
-        );
+        processed = processed.replace(/(Provider:\s*)([^\s<]+)/, '$1<span style="color:red"><b>$2</b></span>');
         processed = `<b>${processed}</b>`;
       }
 
@@ -449,7 +410,10 @@ ${content}
    * Mirrors v3 dateTimeAdjuster exactly.
    */
   private dateTimeAdjuster(dateStr: string): string {
-    return dateStr.replace(/[-T: ]/g, '').substring(0, 14).padEnd(14, '0');
+    return dateStr
+      .replace(/[-T: ]/g, '')
+      .substring(0, 14)
+      .padEnd(14, '0');
   }
 
   /**
@@ -653,12 +617,7 @@ ${routes}
   /**
    * Remove a file from a remote host via SFTP.
    */
-  private async sftpRemove(
-    host: string,
-    username: string,
-    password: string,
-    remotePath: string,
-  ): Promise<void> {
+  private async sftpRemove(host: string, username: string, password: string, remotePath: string): Promise<void> {
     try {
       const SSH2Promise = (await import('ssh2-promise')).default;
       const ssh = new SSH2Promise({
@@ -681,12 +640,7 @@ ${routes}
    * Check if a remote path exists via SFTP stat.
    * Throws if the path does not exist.
    */
-  private async sftpStat(
-    host: string,
-    username: string,
-    password: string,
-    remotePath: string,
-  ): Promise<void> {
+  private async sftpStat(host: string, username: string, password: string, remotePath: string): Promise<void> {
     const SSH2Promise = (await import('ssh2-promise')).default;
     const ssh = new SSH2Promise({
       host,

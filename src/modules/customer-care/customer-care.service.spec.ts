@@ -259,11 +259,7 @@ describe('CustomerCareService', () => {
   describe('shareNSellTransactionHistory', () => {
     it('should delegate directly to historyService.shareNSellTransactionHistory', async () => {
       await service.shareNSellTransactionHistory('2024-01-01', '2024-01-31', '961123456');
-      expect(historyService.shareNSellTransactionHistory).toHaveBeenCalledWith(
-        '2024-01-01',
-        '2024-01-31',
-        '961123456',
-      );
+      expect(historyService.shareNSellTransactionHistory).toHaveBeenCalledWith('2024-01-01', '2024-01-31', '961123456');
     });
   });
 

@@ -84,11 +84,12 @@ export class CustomerCareHistoryService {
     const msisdnWithCountry = `${phoneCode}${msisdn}`;
 
     try {
-      const data = await this.fetchMsapData(
-        httpData,
-        config[SystemKeys.msapBundleSubscriptionEndpoint],
-        { msisdn: msisdnWithCountry, startDate: fromDate, endDate: toDate, requestId: userId },
-      );
+      const data = await this.fetchMsapData(httpData, config[SystemKeys.msapBundleSubscriptionEndpoint], {
+        msisdn: msisdnWithCountry,
+        startDate: fromDate,
+        endDate: toDate,
+        requestId: userId,
+      });
       return this.parseMsapResponse(data);
     } catch (error) {
       if (error instanceof BadRequestException) throw error;
@@ -137,11 +138,7 @@ export class CustomerCareHistoryService {
     if (toDate) params.endDate = toDate.substring(0, 10);
 
     try {
-      const data = await this.fetchMsapData(
-        httpData,
-        config[SystemKeys.msapVasSubscriptionEndpoint],
-        params,
-      );
+      const data = await this.fetchMsapData(httpData, config[SystemKeys.msapVasSubscriptionEndpoint], params);
       return this.parseMsapResponse(data);
     } catch (error) {
       if (error instanceof BadRequestException) throw error;
@@ -159,10 +156,7 @@ export class CustomerCareHistoryService {
     toDate: string,
     pageNum = 1,
   ): Promise<CustomerCareBasicResponse> {
-    const config = await this.systemConfigService.getConfigValues([
-      SystemKeys.daasHost,
-      SystemKeys.countryCode,
-    ]);
+    const config = await this.systemConfigService.getConfigValues([SystemKeys.daasHost, SystemKeys.countryCode]);
 
     const daasHost = config[SystemKeys.daasHost];
     const phoneCode = config[SystemKeys.countryCode];
@@ -184,11 +178,7 @@ export class CustomerCareHistoryService {
    * Export CDR history as Excel file.
    * Mirrors v3 exportCdrHistoryExcel() — stringify all values to prevent scientific notation.
    */
-  async exportCdrHistoryExcel(
-    msisdn: string,
-    fromDate: string,
-    toDate: string,
-  ): Promise<string> {
+  async exportCdrHistoryExcel(msisdn: string, fromDate: string, toDate: string): Promise<string> {
     const table = await this.getCdrHistory(msisdn, fromDate, toDate);
 
     // Stringify all values to prevent Excel auto-converting large numbers
@@ -365,12 +355,7 @@ export class CustomerCareHistoryService {
       for (const line of dailyDALines) {
         const parts = line.split(',');
         body.push({
-          Date:
-            parts[0].substring(0, 4) +
-            '-' +
-            parts[0].substring(4, 6) +
-            '-' +
-            parts[0].substring(6, 8),
+          Date: parts[0].substring(0, 4) + '-' + parts[0].substring(4, 6) + '-' + parts[0].substring(6, 8),
           DA_ID: parts[1] || '',
           DA_Balance: parts[2] || '',
           Expiry_Date: parts[3] || '',
@@ -518,9 +503,7 @@ export class CustomerCareHistoryService {
    */
   private parseMsapResponse(response: MsapApiResponse): CustomerCareBasicResponse {
     if (!response || response.code !== 200 || response.status !== 'Success') {
-      throw new BadRequestException(
-        response?.message || ErrorMessages.CC_NO_SUBSCRIPTION_HISTORY,
-      );
+      throw new BadRequestException(response?.message || ErrorMessages.CC_NO_SUBSCRIPTION_HISTORY);
     }
 
     let dataArray = response.data;
@@ -587,9 +570,7 @@ export class CustomerCareHistoryService {
    */
   private parseDaasResponse(response: DaasApiResponse): CustomerCareBasicResponse {
     if (!response || !response.APIStatus || response.APIStatus.statusCode !== 200) {
-      throw new BadRequestException(
-        response?.APIStatus?.statusMsg || 'No CDR records found',
-      );
+      throw new BadRequestException(response?.APIStatus?.statusMsg || 'No CDR records found');
     }
 
     let dataArray = response.APIData;
@@ -692,10 +673,22 @@ export class CustomerCareHistoryService {
 
     // Build header from flattened columns
     const headerColumns = [
-      'record_type', 'number_called', 'event_dt', 'call_duration_qty',
-      'charged_amount', 'balance_before_amt', 'balance_after_amt', 'discount_amt',
-      'da_account_id', 'da_amount_before', 'da_amount_after', 'da_amount_charged',
-      'country', 'operator', 'bytes_received_qty', 'bytes_sent_qty',
+      'record_type',
+      'number_called',
+      'event_dt',
+      'call_duration_qty',
+      'charged_amount',
+      'balance_before_amt',
+      'balance_after_amt',
+      'discount_amt',
+      'da_account_id',
+      'da_amount_before',
+      'da_amount_after',
+      'da_amount_charged',
+      'country',
+      'operator',
+      'bytes_received_qty',
+      'bytes_sent_qty',
     ];
 
     const header: TabularHeaderDto[] = headerColumns.map((columnName) => {
@@ -713,7 +706,10 @@ export class CustomerCareHistoryService {
    * Mirrors v3 DateTimeAdjuster().
    */
   private dateTimeAdjuster(dateStr: string): string {
-    return dateStr.replace(/[-T: ]/g, '').substring(0, 14).padEnd(14, '0');
+    return dateStr
+      .replace(/[-T: ]/g, '')
+      .substring(0, 14)
+      .padEnd(14, '0');
   }
 
   /**

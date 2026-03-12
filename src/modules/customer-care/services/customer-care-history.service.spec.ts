@@ -85,14 +85,16 @@ describe('CustomerCareHistoryService', () => {
           code: 200,
           status: 'Success',
           transactionId: 'txn-1',
-          data: [
-            { bundleName: 'Data Plan', startDate: '2025-01-01', endDate: '2025-01-31' },
-          ],
+          data: [{ bundleName: 'Data Plan', startDate: '2025-01-01', endDate: '2025-01-31' }],
         },
       });
 
       const result = await service.getMsapSubscriptionHistory(
-        'user-1', '2025-01-01T00:00', '2025-01-31T00:00', false, '8012345678',
+        'user-1',
+        '2025-01-01T00:00',
+        '2025-01-31T00:00',
+        false,
+        '8012345678',
       );
 
       expect(result.header).toBeDefined();
@@ -112,9 +114,7 @@ describe('CustomerCareHistoryService', () => {
         },
       });
 
-      await service.getMsapSubscriptionHistory(
-        'user-1', '2025-01-01T00:00', '2025-01-31T00:00', true, '8012345678',
-      );
+      await service.getMsapSubscriptionHistory('user-1', '2025-01-01T00:00', '2025-01-31T00:00', true, '8012345678');
 
       const callConfig = mockedAxios.mock.calls[0][0] as unknown as Record<string, unknown>;
       expect(callConfig.url as string).toContain('msap-test.example.com');
@@ -161,7 +161,11 @@ describe('CustomerCareHistoryService', () => {
       });
 
       const result = await service.getMsapVasSubscription(
-        'user-1', false, '8012345678', '2025-01-01T00:00', '2025-01-31T00:00',
+        'user-1',
+        false,
+        '8012345678',
+        '2025-01-01T00:00',
+        '2025-01-31T00:00',
       );
 
       expect(result.header).toBeDefined();
@@ -196,9 +200,9 @@ describe('CustomerCareHistoryService', () => {
         },
       });
 
-      await expect(
-        service.getMsapVasSubscription('user-1', false, '8012345678'),
-      ).rejects.toThrow(new BadRequestException(ErrorMessages.CC_NO_SUBSCRIPTION_HISTORY));
+      await expect(service.getMsapVasSubscription('user-1', false, '8012345678')).rejects.toThrow(
+        new BadRequestException(ErrorMessages.CC_NO_SUBSCRIPTION_HISTORY),
+      );
     });
   });
 
@@ -265,7 +269,16 @@ describe('CustomerCareHistoryService', () => {
       systemConfigService.getConfigValues.mockResolvedValue(buildConfigMap());
       mockedAxios.mockResolvedValue({
         data: {
-          APIStatus: { statusCode: 200, statusMsg: 'OK', msisdn: '', requestId: '', dateRange: [], maxRecs: 500, numRecs: 1, pageNum: 1 },
+          APIStatus: {
+            statusCode: 200,
+            statusMsg: 'OK',
+            msisdn: '',
+            requestId: '',
+            dateRange: [],
+            maxRecs: 500,
+            numRecs: 1,
+            pageNum: 1,
+          },
           APIData: [
             {
               record_type: 'SMS',
@@ -299,26 +312,53 @@ describe('CustomerCareHistoryService', () => {
       systemConfigService.getConfigValues.mockResolvedValue(buildConfigMap());
       mockedAxios.mockResolvedValue({
         data: {
-          APIStatus: { statusCode: 500, statusMsg: 'Internal error', msisdn: '', requestId: '', dateRange: [], maxRecs: 0, numRecs: 0, pageNum: 1 },
+          APIStatus: {
+            statusCode: 500,
+            statusMsg: 'Internal error',
+            msisdn: '',
+            requestId: '',
+            dateRange: [],
+            maxRecs: 0,
+            numRecs: 0,
+            pageNum: 1,
+          },
           APIData: [],
         },
       });
 
-      await expect(
-        service.getCdrHistory('8012345678', '2025-01-01', '2025-01-31'),
-      ).rejects.toThrow(BadRequestException);
+      await expect(service.getCdrHistory('8012345678', '2025-01-01', '2025-01-31')).rejects.toThrow(
+        BadRequestException,
+      );
     });
 
     it('should prepend country code only if msisdn does not already have it', async () => {
       systemConfigService.getConfigValues.mockResolvedValue(buildConfigMap());
       mockedAxios.mockResolvedValue({
         data: {
-          APIStatus: { statusCode: 200, statusMsg: 'OK', msisdn: '', requestId: '', dateRange: [], maxRecs: 500, numRecs: 1, pageNum: 1 },
+          APIStatus: {
+            statusCode: 200,
+            statusMsg: 'OK',
+            msisdn: '',
+            requestId: '',
+            dateRange: [],
+            maxRecs: 500,
+            numRecs: 1,
+            pageNum: 1,
+          },
           APIData: [
             {
-              record_type: 'SMS', number_called: '', event_dt: '', call_duration_qty: '0',
-              charged_amount: '1', balance_before_amt: '10', balance_after_amt: '9',
-              discount_amt: '0', country: '', operator: '', bytes_received_qty: 0, bytes_sent_qty: 0,
+              record_type: 'SMS',
+              number_called: '',
+              event_dt: '',
+              call_duration_qty: '0',
+              charged_amount: '1',
+              balance_before_amt: '10',
+              balance_after_amt: '9',
+              discount_amt: '0',
+              country: '',
+              operator: '',
+              bytes_received_qty: 0,
+              bytes_sent_qty: 0,
               da_details: [],
             },
           ],
@@ -343,13 +383,31 @@ describe('CustomerCareHistoryService', () => {
       systemConfigService.getConfigValues.mockResolvedValue(buildConfigMap());
       mockedAxios.mockResolvedValue({
         data: {
-          APIStatus: { statusCode: 200, statusMsg: 'OK', msisdn: '', requestId: '', dateRange: [], maxRecs: 500, numRecs: 1, pageNum: 1 },
+          APIStatus: {
+            statusCode: 200,
+            statusMsg: 'OK',
+            msisdn: '',
+            requestId: '',
+            dateRange: [],
+            maxRecs: 500,
+            numRecs: 1,
+            pageNum: 1,
+          },
           APIData: [
             {
-              record_type: 'VOICE', number_called: '123', event_dt: '20250115',
-              call_duration_qty: '60', charged_amount: '5', balance_before_amt: '100',
-              balance_after_amt: '95', discount_amt: '0', country: 'NG', operator: 'MTN',
-              bytes_received_qty: 0, bytes_sent_qty: 0, da_details: [],
+              record_type: 'VOICE',
+              number_called: '123',
+              event_dt: '20250115',
+              call_duration_qty: '60',
+              charged_amount: '5',
+              balance_before_amt: '100',
+              balance_after_amt: '95',
+              discount_amt: '0',
+              country: 'NG',
+              operator: 'MTN',
+              bytes_received_qty: 0,
+              bytes_sent_qty: 0,
+              da_details: [],
             },
           ],
         },
@@ -370,13 +428,31 @@ describe('CustomerCareHistoryService', () => {
       systemConfigService.getConfigValues.mockResolvedValue(buildConfigMap());
       mockedAxios.mockResolvedValue({
         data: {
-          APIStatus: { statusCode: 200, statusMsg: 'OK', msisdn: '', requestId: '', dateRange: [], maxRecs: 500, numRecs: 1, pageNum: 1 },
+          APIStatus: {
+            statusCode: 200,
+            statusMsg: 'OK',
+            msisdn: '',
+            requestId: '',
+            dateRange: [],
+            maxRecs: 500,
+            numRecs: 1,
+            pageNum: 1,
+          },
           APIData: [
             {
-              record_type: 'DATA', number_called: '', event_dt: '20250115',
-              call_duration_qty: '0', charged_amount: '1234567890123', balance_before_amt: '9999999999',
-              balance_after_amt: '8765432100', discount_amt: '0', country: '', operator: '',
-              bytes_received_qty: 123456789, bytes_sent_qty: 987654321, da_details: [],
+              record_type: 'DATA',
+              number_called: '',
+              event_dt: '20250115',
+              call_duration_qty: '0',
+              charged_amount: '1234567890123',
+              balance_before_amt: '9999999999',
+              balance_after_amt: '8765432100',
+              discount_amt: '0',
+              country: '',
+              operator: '',
+              bytes_received_qty: 123456789,
+              bytes_sent_qty: 987654321,
+              da_details: [],
             },
           ],
         },
@@ -429,29 +505,27 @@ describe('CustomerCareHistoryService', () => {
       legacyDataDbService.query.mockReset();
       legacyDataDbService.query.mockResolvedValueOnce([]);
 
-      await expect(
-        service.getHourlyBalance('20250115120000', '10.0.0.1', '2348012345678'),
-      ).rejects.toThrow(new BadRequestException(ErrorMessages.ERROR_OCCURED));
+      await expect(service.getHourlyBalance('20250115120000', '10.0.0.1', '2348012345678')).rejects.toThrow(
+        new BadRequestException(ErrorMessages.ERROR_OCCURED),
+      );
     });
 
     it('should throw BadRequestException when no SSH config found', async () => {
       legacyDataDbService.query.mockReset();
-      legacyDataDbService.query
-        .mockResolvedValueOnce([{ cluster: 'cluster1' }])
-        .mockResolvedValueOnce([]);
+      legacyDataDbService.query.mockResolvedValueOnce([{ cluster: 'cluster1' }]).mockResolvedValueOnce([]);
 
-      await expect(
-        service.getHourlyBalance('20250115120000', '10.0.0.1', '2348012345678'),
-      ).rejects.toThrow(new BadRequestException(ErrorMessages.ERROR_OCCURED));
+      await expect(service.getHourlyBalance('20250115120000', '10.0.0.1', '2348012345678')).rejects.toThrow(
+        new BadRequestException(ErrorMessages.ERROR_OCCURED),
+      );
     });
 
     it('should throw CC_NO_HOURLY_BALANCE_ON_DATE when no remote files found', async () => {
       const executeSshSpy = jest.spyOn(service as any, 'executeSshCommand');
       executeSshSpy.mockResolvedValueOnce(null);
 
-      await expect(
-        service.getHourlyBalance('20250115120000', '10.0.0.1', '2348012345678'),
-      ).rejects.toThrow(new BadRequestException(ErrorMessages.CC_NO_HOURLY_BALANCE_ON_DATE));
+      await expect(service.getHourlyBalance('20250115120000', '10.0.0.1', '2348012345678')).rejects.toThrow(
+        new BadRequestException(ErrorMessages.CC_NO_HOURLY_BALANCE_ON_DATE),
+      );
     });
 
     it('should throw CC_NO_HOURLY_BALANCE_ON_NUMBER when grep returns no balance', async () => {
@@ -459,9 +533,9 @@ describe('CustomerCareHistoryService', () => {
       executeSshSpy.mockResolvedValueOnce('dump_202501151000.dat\n');
       executeSshSpy.mockResolvedValueOnce(null); // no balance for msisdn
 
-      await expect(
-        service.getHourlyBalance('20250115120000', '10.0.0.1', '2348012345678'),
-      ).rejects.toThrow(new BadRequestException(ErrorMessages.CC_NO_HOURLY_BALANCE_ON_NUMBER));
+      await expect(service.getHourlyBalance('20250115120000', '10.0.0.1', '2348012345678')).rejects.toThrow(
+        new BadRequestException(ErrorMessages.CC_NO_HOURLY_BALANCE_ON_NUMBER),
+      );
     });
 
     it('should filter out .gz files from the file list', async () => {
@@ -489,7 +563,9 @@ describe('CustomerCareHistoryService', () => {
       // List files
       executeSshSpy.mockResolvedValueOnce('20250115\n');
       // Grep DA data — 14-field line
-      executeSshSpy.mockResolvedValueOnce('20250115,101,5000,20250201,100,OFFER1,20250101,UNIT,CAT,MONEY,800,PAM1,PROD1\n');
+      executeSshSpy.mockResolvedValueOnce(
+        '20250115,101,5000,20250201,100,OFFER1,20250101,UNIT,CAT,MONEY,800,PAM1,PROD1\n',
+      );
 
       const result = await service.getDailyDAHistory('2025-01-15', '2025-01-15', '10.0.0.1', '2348012345678');
 
@@ -505,9 +581,9 @@ describe('CustomerCareHistoryService', () => {
       const executeSshSpy = jest.spyOn(service as any, 'executeSshCommand');
       executeSshSpy.mockResolvedValueOnce(null);
 
-      await expect(
-        service.getDailyDAHistory('2025-01-15', '2025-01-15', '10.0.0.1', '2348012345678'),
-      ).rejects.toThrow(new BadRequestException(ErrorMessages.CC_NO_DA_DAILY_BALANCE_ON_DATE));
+      await expect(service.getDailyDAHistory('2025-01-15', '2025-01-15', '10.0.0.1', '2348012345678')).rejects.toThrow(
+        new BadRequestException(ErrorMessages.CC_NO_DA_DAILY_BALANCE_ON_DATE),
+      );
     });
 
     it('should throw CC_NO_HOURLY_BALANCE_ON_NUMBER when grep returns no data', async () => {
@@ -515,18 +591,18 @@ describe('CustomerCareHistoryService', () => {
       executeSshSpy.mockResolvedValueOnce('20250115\n');
       executeSshSpy.mockResolvedValueOnce(null);
 
-      await expect(
-        service.getDailyDAHistory('2025-01-15', '2025-01-15', '10.0.0.1', '2348012345678'),
-      ).rejects.toThrow(new BadRequestException(ErrorMessages.CC_NO_HOURLY_BALANCE_ON_NUMBER));
+      await expect(service.getDailyDAHistory('2025-01-15', '2025-01-15', '10.0.0.1', '2348012345678')).rejects.toThrow(
+        new BadRequestException(ErrorMessages.CC_NO_HOURLY_BALANCE_ON_NUMBER),
+      );
     });
 
     it('should throw when no cluster found', async () => {
       legacyDataDbService.query.mockReset();
       legacyDataDbService.query.mockResolvedValueOnce([]);
 
-      await expect(
-        service.getDailyDAHistory('2025-01-15', '2025-01-15', '10.0.0.1', '2348012345678'),
-      ).rejects.toThrow(new BadRequestException(ErrorMessages.ERROR_OCCURED));
+      await expect(service.getDailyDAHistory('2025-01-15', '2025-01-15', '10.0.0.1', '2348012345678')).rejects.toThrow(
+        new BadRequestException(ErrorMessages.ERROR_OCCURED),
+      );
     });
   });
 
@@ -567,9 +643,9 @@ describe('CustomerCareHistoryService', () => {
       systemConfigService.getConfigValues.mockResolvedValue(buildConfigMap());
       mockedAxios.post.mockRejectedValue(new Error('Connection refused'));
 
-      await expect(
-        service.shareNSellTransactionHistory('8012345678', '2025-01-01', '2025-01-31'),
-      ).rejects.toThrow(new BadRequestException(ErrorMessages.CC_SELL_N_SHARE_FAIL));
+      await expect(service.shareNSellTransactionHistory('8012345678', '2025-01-01', '2025-01-31')).rejects.toThrow(
+        new BadRequestException(ErrorMessages.CC_SELL_N_SHARE_FAIL),
+      );
     });
 
     it('should throw CC_ERROR_FROM_HOST when status is not 200', async () => {
@@ -579,9 +655,9 @@ describe('CustomerCareHistoryService', () => {
         data: 'error',
       });
 
-      await expect(
-        service.shareNSellTransactionHistory('8012345678', '2025-01-01', '2025-01-31'),
-      ).rejects.toThrow(new BadRequestException(ErrorMessages.CC_ERROR_FROM_HOST));
+      await expect(service.shareNSellTransactionHistory('8012345678', '2025-01-01', '2025-01-31')).rejects.toThrow(
+        new BadRequestException(ErrorMessages.CC_ERROR_FROM_HOST),
+      );
     });
 
     it('should throw CC_EMPTY_RESPONSE when data is null', async () => {
@@ -591,9 +667,9 @@ describe('CustomerCareHistoryService', () => {
         data: null,
       });
 
-      await expect(
-        service.shareNSellTransactionHistory('8012345678', '2025-01-01', '2025-01-31'),
-      ).rejects.toThrow(new BadRequestException(ErrorMessages.CC_EMPTY_RESPONSE));
+      await expect(service.shareNSellTransactionHistory('8012345678', '2025-01-01', '2025-01-31')).rejects.toThrow(
+        new BadRequestException(ErrorMessages.CC_EMPTY_RESPONSE),
+      );
     });
 
     it('should capitalize and split camelCase header names', async () => {

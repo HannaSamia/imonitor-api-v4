@@ -8,6 +8,7 @@ import { LegacyDataDbService } from '../../../database/legacy-data-db/legacy-dat
 import { CoreCustomerCareError } from '../../../database/entities/core-customer-care-error.entity';
 import { CustomerCareXMLRequest } from '../interfaces';
 import { ErrorMessages } from '../../../shared/constants/error-messages';
+import * as dnsModule from 'dns';
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -101,9 +102,7 @@ describe('CustomerCareAirService', () => {
         air_date_time: "yyyyMMdd'T'HH:mm:ssXXX",
         air_server_port: '8080',
       });
-      dateHelperService.formatDate
-        .mockReturnValueOnce('20260312T10:00:00+03:00')
-        .mockReturnValueOnce('26');
+      dateHelperService.formatDate.mockReturnValueOnce('20260312T10:00:00+03:00').mockReturnValueOnce('26');
 
       const result = await service.airServerAdjuster(false);
 
@@ -111,9 +110,7 @@ describe('CustomerCareAirService', () => {
         expect.arrayContaining(['air_server', 'air_server_user', 'air_server_pass', 'air_server_port']),
       );
       // No test suffix keys
-      expect(systemConfigService.getConfigValues).toHaveBeenCalledWith(
-        expect.not.arrayContaining(['air_server_test']),
-      );
+      expect(systemConfigService.getConfigValues).toHaveBeenCalledWith(expect.not.arrayContaining(['air_server_test']));
       expect(result.AIRServer).toBe('10.0.0.1');
       expect(result.usr).toBe('admin');
       expect(result.pass).toBe('pass123');
@@ -134,9 +131,7 @@ describe('CustomerCareAirService', () => {
         air_trans_id_test: 'test-trans',
         air_server_port_test: '9090',
       });
-      dateHelperService.formatDate
-        .mockReturnValueOnce('20260312T10:00:00+03:00')
-        .mockReturnValueOnce('26');
+      dateHelperService.formatDate.mockReturnValueOnce('20260312T10:00:00+03:00').mockReturnValueOnce('26');
 
       const result = await service.airServerAdjuster(true);
 
@@ -184,7 +179,7 @@ describe('CustomerCareAirService', () => {
       systemConfigService.getConfigValue.mockResolvedValue('234');
 
       // Mock dns.promises to simulate failure
-      const dnsPromises = require('dns').promises;
+      const dnsPromises = dnsModule.promises;
       jest.spyOn(dnsPromises, 'setServers').mockImplementation(() => {});
       jest.spyOn(dnsPromises, 'resolve4').mockRejectedValue(new Error('DNS failed'));
 
@@ -197,7 +192,7 @@ describe('CustomerCareAirService', () => {
     it('should return SDP info on successful DNS resolution and DB lookup', async () => {
       systemConfigService.getConfigValue.mockResolvedValue('234');
 
-      const dnsPromises = require('dns').promises;
+      const dnsPromises = dnsModule.promises;
       jest.spyOn(dnsPromises, 'setServers').mockImplementation(() => {});
       jest.spyOn(dnsPromises, 'resolve4').mockResolvedValue(['192.168.1.1', '192.168.1.2']);
 
@@ -216,7 +211,7 @@ describe('CustomerCareAirService', () => {
     it('should return Undefined values when DB has no matching SDP node', async () => {
       systemConfigService.getConfigValue.mockResolvedValue('234');
 
-      const dnsPromises = require('dns').promises;
+      const dnsPromises = dnsModule.promises;
       jest.spyOn(dnsPromises, 'setServers').mockImplementation(() => {});
       jest.spyOn(dnsPromises, 'resolve4').mockResolvedValue(['192.168.1.1']);
 

@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 import { Test, TestingModule } from '@nestjs/testing';
 import { BadRequestException } from '@nestjs/common';
 import axios from 'axios';
@@ -22,10 +21,8 @@ jest.mock('fs', () => ({
 }));
 
 // Import after mocks are set up
-// eslint-disable-next-line @typescript-eslint/no-var-requires
-const { CustomerCareNetworkService } = require('./customer-care-network.service');
-// eslint-disable-next-line @typescript-eslint/no-var-requires
-const { SystemConfigService } = require('../../../shared/services/system-config.service');
+import { CustomerCareNetworkService } from './customer-care-network.service';
+import { SystemConfigService } from '../../../shared/services/system-config.service';
 
 // ─── Mock SOAP/XML Responses ──────────────────────────────────────────────────
 
@@ -174,10 +171,7 @@ describe('CustomerCareNetworkService', () => {
     systemConfigService = createMockSystemConfigService();
 
     const module: TestingModule = await Test.createTestingModule({
-      providers: [
-        CustomerCareNetworkService,
-        { provide: SystemConfigService, useValue: systemConfigService },
-      ],
+      providers: [CustomerCareNetworkService, { provide: SystemConfigService, useValue: systemConfigService }],
     }).compile();
 
     service = module.get(CustomerCareNetworkService);
@@ -358,13 +352,7 @@ describe('CustomerCareNetworkService', () => {
     it('should parse CIS XML response and return header + body with product details', async () => {
       mockedAxios.get.mockResolvedValueOnce({ data: MOCK_CIS_XML });
 
-      const result = await service.getSubscriptionHistory(
-        'user-1',
-        '2026-03-01',
-        '2026-03-10',
-        false,
-        '9012345678',
-      );
+      const result = await service.getSubscriptionHistory('user-1', '2026-03-01', '2026-03-10', false, '9012345678');
 
       expect(result.body).toHaveLength(1);
       const product = result.body[0] as Record<string, unknown>;
@@ -377,21 +365,11 @@ describe('CustomerCareNetworkService', () => {
     it('should return a predefined header with 17 columns', async () => {
       mockedAxios.get.mockResolvedValueOnce({ data: MOCK_CIS_XML });
 
-      const result = await service.getSubscriptionHistory(
-        'user-1',
-        '2026-03-01',
-        '2026-03-10',
-        false,
-        '9012345678',
-      );
+      const result = await service.getSubscriptionHistory('user-1', '2026-03-01', '2026-03-10', false, '9012345678');
 
       expect(result.header).toHaveLength(17);
-      expect(result.header[0]).toEqual(
-        expect.objectContaining({ header: 'Product Id', field: 'productId' }),
-      );
-      expect(result.header[16]).toEqual(
-        expect.objectContaining({ header: 'Failure Reason', field: 'failureReason' }),
-      );
+      expect(result.header[0]).toEqual(expect.objectContaining({ header: 'Product Id', field: 'productId' }));
+      expect(result.header[16]).toEqual(expect.objectContaining({ header: 'Failure Reason', field: 'failureReason' }));
     });
 
     it('should use test host/port when isTestNumber is true', async () => {
@@ -407,13 +385,7 @@ describe('CustomerCareNetworkService', () => {
     it('should use production host/port when isTestNumber is false', async () => {
       mockedAxios.get.mockResolvedValueOnce({ data: MOCK_CIS_XML });
 
-      await service.getSubscriptionHistory(
-        'user-1',
-        '2026-03-01',
-        '2026-03-10',
-        false,
-        '9012345678',
-      );
+      await service.getSubscriptionHistory('user-1', '2026-03-01', '2026-03-10', false, '9012345678');
 
       const url = mockedAxios.get.mock.calls[0][0] as string;
       expect(url).toContain('10.0.0.1');
@@ -449,13 +421,7 @@ describe('CustomerCareNetworkService', () => {
     it('should handle single productDetails (not wrapped in array)', async () => {
       mockedAxios.get.mockResolvedValueOnce({ data: MOCK_CIS_XML });
 
-      const result = await service.getSubscriptionHistory(
-        'user-1',
-        '2026-03-01',
-        '2026-03-10',
-        false,
-        '9012345678',
-      );
+      const result = await service.getSubscriptionHistory('user-1', '2026-03-01', '2026-03-10', false, '9012345678');
 
       // Single product detail should still be wrapped in an array
       expect(Array.isArray(result.body)).toBe(true);
@@ -481,13 +447,7 @@ describe('CustomerCareNetworkService', () => {
 </fulfillmentService>`;
       mockedAxios.get.mockResolvedValueOnce({ data: multiXml });
 
-      const result = await service.getSubscriptionHistory(
-        'user-1',
-        '2026-03-01',
-        '2026-03-10',
-        false,
-        '9012345678',
-      );
+      const result = await service.getSubscriptionHistory('user-1', '2026-03-01', '2026-03-10', false, '9012345678');
 
       expect(result.body).toHaveLength(2);
     });

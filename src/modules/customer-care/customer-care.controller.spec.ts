@@ -7,7 +7,13 @@ import { PrivilegeGuard } from '../../auth/guards/privilege.guard';
 // Mock fs.createReadStream to avoid ENOENT errors on fake file paths
 jest.mock('fs', () => ({
   ...jest.requireActual('fs'),
-  createReadStream: jest.fn().mockReturnValue(new Readable({ read() { this.push(null); } })),
+  createReadStream: jest.fn().mockReturnValue(
+    new Readable({
+      read() {
+        this.push(null);
+      },
+    }),
+  ),
 }));
 
 describe('CustomerCareController', () => {
@@ -52,9 +58,7 @@ describe('CustomerCareController', () => {
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       controllers: [CustomerCareController],
-      providers: [
-        { provide: CustomerCareService, useValue: mockService },
-      ],
+      providers: [{ provide: CustomerCareService, useValue: mockService }],
     })
       .overrideGuard(PrivilegeGuard)
       .useValue({ canActivate: () => true })
@@ -247,7 +251,11 @@ describe('CustomerCareController', () => {
 
   describe('getCdrHistory', () => {
     it('should pass correct params and return { result }', async () => {
-      const result = await controller.getCdrHistory({ fromdate: '2024-01-01', todate: '2024-01-31', msisdn: '961123456' });
+      const result = await controller.getCdrHistory({
+        fromdate: '2024-01-01',
+        todate: '2024-01-31',
+        msisdn: '961123456',
+      });
       expect(service.getCdrHistory).toHaveBeenCalledWith('2024-01-01', '2024-01-31', '961123456');
       expect(result).toEqual({ result: { header: [], body: [] } });
     });
@@ -393,12 +401,7 @@ describe('CustomerCareController', () => {
       } catch {
         // createReadStream fails on fake path
       }
-      expect(service.exportAirTraceHtml).toHaveBeenCalledWith(
-        '08:00',
-        '12:00',
-        '961123456',
-        'http://localhost:5011',
-      );
+      expect(service.exportAirTraceHtml).toHaveBeenCalledWith('08:00', '12:00', '961123456', 'http://localhost:5011');
     });
   });
 

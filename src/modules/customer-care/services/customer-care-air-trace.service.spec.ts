@@ -80,36 +80,28 @@ describe('CustomerCareAirTraceService', () => {
     it('should throw BadRequestException when no AIR credentials found', async () => {
       jest.spyOn(service as any, 'getAirNodeCredentials').mockResolvedValue([]);
 
-      await expect(service.setAirTrace(MOCK_MSISDN, MOCK_USER_ID)).rejects.toThrow(
-        ErrorMessages.CC_SFTP_SSH_FAILED,
-      );
+      await expect(service.setAirTrace(MOCK_MSISDN, MOCK_USER_ID)).rejects.toThrow(ErrorMessages.CC_SFTP_SSH_FAILED);
     });
 
     it('should throw BadRequestException when all nodes have PATH_NOT_FOUND', async () => {
       jest.spyOn(service as any, 'getAirNodeCredentials').mockResolvedValue([MOCK_AIR_CRED]);
       jest.spyOn(service as any, 'executeAirTraceOnNode').mockRejectedValue(new Error('PATH_NOT_FOUND'));
 
-      await expect(service.setAirTrace(MOCK_MSISDN, MOCK_USER_ID)).rejects.toThrow(
-        ErrorMessages.CC_AIR_PATH_NOT_FOUND,
-      );
+      await expect(service.setAirTrace(MOCK_MSISDN, MOCK_USER_ID)).rejects.toThrow(ErrorMessages.CC_AIR_PATH_NOT_FOUND);
     });
 
     it('should throw BadRequestException when all nodes have SSH failures', async () => {
       jest.spyOn(service as any, 'getAirNodeCredentials').mockResolvedValue([MOCK_AIR_CRED]);
       jest.spyOn(service as any, 'executeAirTraceOnNode').mockRejectedValue(new Error('SSH_FAILED'));
 
-      await expect(service.setAirTrace(MOCK_MSISDN, MOCK_USER_ID)).rejects.toThrow(
-        ErrorMessages.CC_SFTP_SSH_FAILED,
-      );
+      await expect(service.setAirTrace(MOCK_MSISDN, MOCK_USER_ID)).rejects.toThrow(ErrorMessages.CC_SFTP_SSH_FAILED);
     });
 
     it('should throw BadRequestException when all nodes have upload failures', async () => {
       jest.spyOn(service as any, 'getAirNodeCredentials').mockResolvedValue([MOCK_AIR_CRED]);
       jest.spyOn(service as any, 'executeAirTraceOnNode').mockRejectedValue(new Error('UPLOAD_FAILED'));
 
-      await expect(service.setAirTrace(MOCK_MSISDN, MOCK_USER_ID)).rejects.toThrow(
-        ErrorMessages.CC_SFTP_UPLOAD_FAILED,
-      );
+      await expect(service.setAirTrace(MOCK_MSISDN, MOCK_USER_ID)).rejects.toThrow(ErrorMessages.CC_SFTP_UPLOAD_FAILED);
     });
 
     it('should throw BadRequestException when all nodes return false (trace error)', async () => {
@@ -161,9 +153,7 @@ describe('CustomerCareAirTraceService', () => {
     it('should throw BadRequestException when no AIR credentials found', async () => {
       jest.spyOn(service as any, 'getAirNodeCredentials').mockResolvedValue([]);
 
-      await expect(service.unsetAirTrace(MOCK_MSISDN, MOCK_USER_ID)).rejects.toThrow(
-        ErrorMessages.CC_SFTP_SSH_FAILED,
-      );
+      await expect(service.unsetAirTrace(MOCK_MSISDN, MOCK_USER_ID)).rejects.toThrow(ErrorMessages.CC_SFTP_SSH_FAILED);
     });
 
     it('should throw BadRequestException when all nodes fail with trace errors', async () => {
@@ -202,9 +192,7 @@ describe('CustomerCareAirTraceService', () => {
     it('should throw BadRequestException when time range exceeds 10 minutes', async () => {
       dateHelperService.differenceInMinutes.mockReturnValue(15);
 
-      await expect(service.fetchAirTrace(fromTime, toTime, MOCK_MSISDN)).rejects.toThrow(
-        BadRequestException,
-      );
+      await expect(service.fetchAirTrace(fromTime, toTime, MOCK_MSISDN)).rejects.toThrow(BadRequestException);
     });
 
     it('should throw BadRequestException when no AIR credentials found', async () => {
@@ -271,10 +259,7 @@ describe('CustomerCareAirTraceService', () => {
     });
 
     it('should skip nodes with missing credentials', async () => {
-      const creds = [
-        { ip_address: '', ssh_user: '', ssh_pass: '', gui_user: '', gui_pass: '' },
-        MOCK_AIR_CRED,
-      ];
+      const creds = [{ ip_address: '', ssh_user: '', ssh_pass: '', gui_user: '', gui_pass: '' }, MOCK_AIR_CRED];
       jest.spyOn(service as any, 'getAirNodeCredentials').mockResolvedValue(creds);
       const sshSpy = jest.spyOn(service as any, 'executeSshCommand').mockResolvedValue('data|');
 
@@ -306,9 +291,9 @@ describe('CustomerCareAirTraceService', () => {
         downloadUrl: 'http://localhost/download',
       });
 
-      await expect(
-        service.exportAirTraceHtml(fromTime, toTime, MOCK_MSISDN, 'http://localhost'),
-      ).rejects.toThrow(BadRequestException);
+      await expect(service.exportAirTraceHtml(fromTime, toTime, MOCK_MSISDN, 'http://localhost')).rejects.toThrow(
+        BadRequestException,
+      );
     });
 
     it('should include download URL in error message when trace is too large', async () => {
@@ -318,9 +303,9 @@ describe('CustomerCareAirTraceService', () => {
         downloadUrl,
       });
 
-      await expect(
-        service.exportAirTraceHtml(fromTime, toTime, MOCK_MSISDN, 'http://localhost:5011'),
-      ).rejects.toThrow(downloadUrl);
+      await expect(service.exportAirTraceHtml(fromTime, toTime, MOCK_MSISDN, 'http://localhost:5011')).rejects.toThrow(
+        downloadUrl,
+      );
     });
   });
 
@@ -363,9 +348,7 @@ describe('CustomerCareAirTraceService', () => {
       const result = await service.fetchTraceHistory(fromDate, toDate);
 
       expect(result.header).toHaveLength(5);
-      expect(result.header[0]).toEqual(
-        expect.objectContaining({ field: 'node', cellsalign: 'left' }),
-      );
+      expect(result.header[0]).toEqual(expect.objectContaining({ field: 'node', cellsalign: 'left' }));
       expect(result.body).toEqual(mockRows);
     });
 
@@ -406,9 +389,7 @@ describe('CustomerCareAirTraceService', () => {
 
   describe('fetchTracedNumbers', () => {
     it('should return header and body for currently traced numbers', async () => {
-      const mockRows = [
-        { phoneNumber: '961123456', node: 'AIR', setAt: '2026-03-12 10:00:00', setBy: 'admin' },
-      ];
+      const mockRows = [{ phoneNumber: '961123456', node: 'AIR', setAt: '2026-03-12 10:00:00', setBy: 'admin' }];
       traceTrackerRepo.query.mockResolvedValue(mockRows);
 
       const result = await service.fetchTracedNumbers();
@@ -431,12 +412,8 @@ describe('CustomerCareAirTraceService', () => {
 
       await service.fetchTracedNumbers();
 
-      expect(traceTrackerRepo.query).toHaveBeenCalledWith(
-        expect.stringContaining("status = 'set'"),
-      );
-      expect(traceTrackerRepo.query).toHaveBeenCalledWith(
-        expect.stringContaining('MAX(createdAt)'),
-      );
+      expect(traceTrackerRepo.query).toHaveBeenCalledWith(expect.stringContaining("status = 'set'"));
+      expect(traceTrackerRepo.query).toHaveBeenCalledWith(expect.stringContaining('MAX(createdAt)'));
     });
 
     it('should exclude fetch status from latest record lookup', async () => {
@@ -444,9 +421,7 @@ describe('CustomerCareAirTraceService', () => {
 
       await service.fetchTracedNumbers();
 
-      expect(traceTrackerRepo.query).toHaveBeenCalledWith(
-        expect.stringContaining("status != 'fetch'"),
-      );
+      expect(traceTrackerRepo.query).toHaveBeenCalledWith(expect.stringContaining("status != 'fetch'"));
     });
   });
 });

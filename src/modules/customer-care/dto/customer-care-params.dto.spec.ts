@@ -120,7 +120,11 @@ describe('Customer Care DTOs', () => {
     });
 
     it('should fail validation when fromdate is missing', async () => {
-      const dto = plainToInstance(DaHistoryParamsDto, { todate: '2024-01-31', sdpvip: '10.0.0.1', msisdn: '961123456' });
+      const dto = plainToInstance(DaHistoryParamsDto, {
+        todate: '2024-01-31',
+        sdpvip: '10.0.0.1',
+        msisdn: '961123456',
+      });
       const errors = await validate(dto);
       expect(errors.length).toBeGreaterThan(0);
       expect(errors.some((e) => e.property === 'fromdate')).toBe(true);

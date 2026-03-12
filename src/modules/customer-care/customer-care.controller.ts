@@ -399,8 +399,8 @@ export class CustomerCareController {
   // ───────────────────── 31: Share'n'Sell ─────────────────────
 
   @Get('sellnshare/history/:fromdate/:todate/:msisdn')
-  @ApiOperation({ summary: 'Get Share\'n\'Sell transaction history' })
-  @ApiResponse({ status: 200, description: 'Share\'n\'Sell transaction data' })
+  @ApiOperation({ summary: "Get Share'n'Sell transaction history" })
+  @ApiResponse({ status: 200, description: "Share'n'Sell transaction data" })
   async shareNSellTransactionHistory(@Param() params: CdrHistoryParamsDto) {
     const result = await this.customerCareService.shareNSellTransactionHistory(
       params.fromdate,
