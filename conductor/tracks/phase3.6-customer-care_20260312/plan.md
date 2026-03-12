@@ -67,13 +67,13 @@ Implement SDP trace and AIR trace management (set/unset/fetch/export via SSH/SFT
 
 ### Tasks
 
-- [ ] Task 4.1: Create `CustomerCareSdpTraceService` — `setTrace()` and `unsetTrace()` via SSH command execution + trace tracker DB updates
-- [ ] Task 4.2: Implement SDP trace fetch — `fetchTrace()` via SFTP file retrieval, parses trace data
-- [ ] Task 4.3: Implement SDP trace exports — `exportSdpTraceHtml()` (with provider mapping), `exportSdpTraceRawMappingHtml()` (raw with mapping), `exportSdpTraceRawText()` (plain TXT)
-- [ ] Task 4.4: Create `CustomerCareAirTraceService` — `setAirTrace()`, `unsetAirTrace()` via SSH commands + trace tracker DB updates
-- [ ] Task 4.5: Implement AIR trace fetch — `fetchAirTrace()` via SSH, returns `AirDownloadableDTO` with download URL
-- [ ] Task 4.6: Implement AIR trace exports — `exportAirTraceHtml()`, `downloadAirTrace()` (returns `ITextToFile`)
-- [ ] Task 4.7: Implement trace history — `fetchTraceHistory()` and `fetchTracedNumbers()` querying `core_trace_tracker` via TypeORM
+- [x] Task 4.1: Create `CustomerCareSdpTraceService` — `setTrace()` and `unsetTrace()` via SSH command execution + trace tracker DB updates
+- [x] Task 4.2: Implement SDP trace fetch — `fetchTrace()` via SFTP file retrieval, parses trace data
+- [x] Task 4.3: Implement SDP trace exports — `exportSdpTraceHtml()` (with provider mapping), `exportSdpTraceRawMappingHtml()` (raw with mapping), `exportSdpTraceRawText()` (plain TXT)
+- [x] Task 4.4: Create `CustomerCareAirTraceService` — `setAirTrace()`, `unsetAirTrace()` via SSH commands + trace tracker DB updates
+- [x] Task 4.5: Implement AIR trace fetch — `fetchAirTrace()` via SSH, returns `AirDownloadableDTO` with download URL
+- [x] Task 4.6: Implement AIR trace exports — `exportAirTraceHtml()`, `downloadAirTrace()` (returns `ITextToFile`)
+- [x] Task 4.7: Implement trace history — `fetchTraceHistory()` and `fetchTracedNumbers()` querying `core_trace_tracker` via TypeORM
 
 ### Verification
 
