@@ -38,4 +38,9 @@ export const SystemKeys = {
   // Customer Care — DSM (Share'n'Sell)
   dsmTransactionHistAPI: 'DsmTransactionHistAPI',
   dsmAuthorizationKey: 'DsmAuthorizationKey',
+
+  // Tariff Log — external process service (preserving v3 key names exactly)
+  tarrifProcessUrl: 'tarrifProcessUrl',
+  tarrifPullProcessUrl: 'tarrifPullProcessUrl',
+  tarrifProcessKey: 'TarrifProcessKey',
 } as const;

@@ -1,0 +1,16 @@
+{
+  "id": "phase3.7-processing_20260312",
+  "title": "Phase 3.7 — Processing (BulkProcessing, BulkEda, CdrDecoder, BillRun, Tariff)",
+  "type": "feature",
+  "status": "in_progress",
+  "created": "2026-03-12T00:00:00.000Z",
+  "updated": "2026-03-12T00:00:00.000Z",
+  "phases": {
+    "total": 7,
+    "completed": 0
+  },
+  "tasks": {
+    "total": 49,
+    "completed": 0
+  }
+}

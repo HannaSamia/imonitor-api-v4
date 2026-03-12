@@ -159,6 +159,52 @@ export const ErrorMessages = {
   CC_TRACE_UNSET: 'Trace unset successfully',
   CC_TRACE_RETRIEVED: 'Trace retrived successfully',
 
+  // Bulk Processing errors (preserving v3 bulkProcessMessages)
+  BULK_FILE_NOT_SUPPORTED: 'The uploaded file type is not supported',
+  BULK_PROCESS_ADD_ERROR: 'Error while registering the bulk process',
+  BULK_PROCESS_WORKER_FAILED: 'Error during the file processing',
+  BULK_WRONG_FILE_TYPE: 'Download error, wrong file type selected',
+  BULK_PROCESS_NOT_FOUND: 'Bulk process not found',
+  BULK_PROCESS_NOT_FINISHED: 'Please wait until the bulk process is finished',
+  BULK_PROCESS_DOWNLOAD_FAILED: 'File download faild',
+  BULK_UPDATE_NOT_PENDING: 'None pending processes cannot be updated',
+  BULK_WAIT_TILL_FINISHED: 'Please wait until the process is finished',
+  BULK_NO_AIR_NODES: 'No air nodes selected',
+  BULK_INCORRECT_CSV_HEADERS: 'Incorrect csv headers',
+
+  // Bulk EDA Report errors (preserving v3 bulkEdaReportErrorMessages / successMessages)
+  EDA_PROCESS_NOT_FOUND: 'Eda process not found',
+  EDA_UPLOAD_FAILED_MAX_50_ROWS: 'upload failed, max 50 rows',
+  EDA_UNAUTHORIZED_NOT_OWNER: 'unauthorized, you are not the owner of this report',
+  EDA_PROCESS_SUCCESSFULLY_CREATED: 'eda process was successfully created',
+  EDA_PROCESS_SUCCESSFULLY_DELETED: 'eda process was successfully deleted',
+
+  // CDR Decoder errors (preserving v3 CdrDecodeErrorMessages)
+  CDR_FAILED_TO_DECODE: 'Failed to decode file',
+  CDR_PROCESS_NOT_FOUND: 'Process not found',
+  CDR_FILE_NOT_FOUND: 'File not found',
+  CDR_FILE_UNAVAILABLE: 'Decoded file not available - process not completed',
+  CDR_FAILED_DELETE_RUNNING: 'Cannot delete while process is running',
+  CDR_INVALID_FILE_FORMAT: 'Invalid file format. Only .zip and .gz files are accepted',
+
+  // Bill Run errors (preserving v3 BillRunErrorMessages)
+  BILLRUN_ONLY_CSV: 'Only CSV files are supported',
+  BILLRUN_INVALID_MSISDNS: 'No valid MSISDNs found in CSV. Expected header: msisdn_key',
+  BILLRUN_NOT_FOUND: 'Bill run process not found',
+  BILLRUN_NOT_COMPLETED: 'Output file not available, process not completed',
+  BILLRUN_FILE_UNAVAILABLE: 'File not available',
+  BILLRUN_FILE_NOT_FOUND: 'File not found on disk',
+  BILLRUN_DELETE_RUNNING: 'Cannot delete a process that is still running',
+
+  // Tariff Log errors (preserving v3 tarrifLogsMessages — note: typos preserved)
+  TARRIF_CANNOT_CHOOSE_FUTURE_DATE: 'invalid date, you cannot choose a date bigger that the current one',
+  TARRIF_TRIGGER_PROCESS_ERROR: 'Error while triggering the process',
+  TARRIF_NOT_FOUND: 'Tarrif process not found',
+  TARRIF_WAIT_TILL_FINISHED: 'Please wait until the process is finished',
+  TARRIF_FILE_NOT_FOUND_WAIT: 'Recreating Tarrif result, please wait',
+  TARRIF_NOT_CORRECT: 'The selected tarrif is incorrect',
+  TARRIF_SAME_DATE: 'You cannot compare the same dates',
+
   // Generic errors (preserving v3 typo for backward compat)
   ERROR_OCCURED: 'an error occured!',
   NOT_FOUND: 'You are lost',
