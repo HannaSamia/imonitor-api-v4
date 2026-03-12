@@ -22,6 +22,7 @@ logs
 *.log
 
 # Assets (generated)
+assets/exports
 src/assets/exports
 src/assets/customerCare/bulkProcessing
 src/assets/customerCare/bulkProcessingOutput

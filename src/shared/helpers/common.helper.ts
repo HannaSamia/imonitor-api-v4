@@ -93,3 +93,30 @@ export function isNumeric(str: unknown): boolean {
 export function timeOut(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
+
+/**
+ * Format MSISDN: strip leading +, 0, spaces, and country code prefix.
+ * Mirrors v3 msisdnFormater() logic exactly.
+ * @param msisdn Raw phone number input
+ * @param countryCode Country code from system config (e.g. '234')
+ * @param forceIntl If true, prepend country code back after stripping
+ */
+export function msisdnFormatter(msisdn: string, countryCode: string, forceIntl = false): string {
+  let formatted = msisdn.replace(/^[+0\s]+/, '').replace(/\s+/g, '');
+
+  if (formatted.startsWith('0')) {
+    formatted = formatted.substring(1);
+  }
+
+  if (formatted.startsWith(`${countryCode}0`)) {
+    formatted = formatted.substring(countryCode.length + 1);
+  } else if (formatted.startsWith(countryCode)) {
+    formatted = formatted.substring(countryCode.length);
+  }
+
+  if (forceIntl) {
+    formatted = `${countryCode}${formatted}`;
+  }
+
+  return formatted;
+}
