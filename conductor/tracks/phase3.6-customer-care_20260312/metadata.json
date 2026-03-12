@@ -1,0 +1,19 @@
+{
+  "id": "phase3.6-customer-care_20260312",
+  "title": "Phase 3.6: Customer Care",
+  "type": "feature",
+  "status": "in_progress",
+  "created": "2026-03-12T00:00:00Z",
+  "updated": "2026-03-12T00:00:00Z",
+  "current_phase": 1,
+  "current_task": "1.1",
+  "phases": {
+    "total": 6,
+    "completed": 0
+  },
+  "tasks": {
+    "total": 37,
+    "completed": 0
+  },
+  "commits": []
+}
