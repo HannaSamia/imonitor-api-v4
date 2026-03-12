@@ -3,7 +3,7 @@
 **Track ID:** phase3.6-customer-care_20260312
 **Spec:** [spec.md](./spec.md)
 **Created:** 2026-03-12
-**Status:** In Progress
+**Status:** Complete
 
 ## Overview
 
@@ -104,16 +104,16 @@ Comprehensive unit tests for all services, update migration docs.
 
 ### Tasks
 
-- [ ] Task 6.1: Write unit tests for `CustomerCareAirService` — airServerAdjuster, getSDP, getDedicatedAccounts, getOffers, getAccumulators, getPAM, getUsageCounter, getUsageThreshold, getSob, error logging
-- [ ] Task 6.2: Write unit tests for `CustomerCareNetworkService` — getHLR, getHSS, getMTAS
-- [ ] Task 6.3: Write unit tests for `CustomerCareHistoryService` — getSubscriptionHistory, getMsapSubscriptionHistory, getMsapVasSubscription, getCdrHistory, exportCdrHistoryExcel, getHourlyBalance, getDailyDAHistory, shareNSellTransactionHistory
-- [ ] Task 6.4: Write unit tests for `CustomerCareSdpTraceService` — setTrace, unsetTrace, fetchTrace, exports
-- [ ] Task 6.5: Write unit tests for `CustomerCareAirTraceService` — setAirTrace, unsetAirTrace, fetchAirTrace, exports
-- [ ] Task 6.6: Write unit tests for `CustomerCareService` (facade) — delegation tests
-- [ ] Task 6.7: Write unit tests for `CustomerCareController` — all 30 endpoint handler tests
-- [ ] Task 6.8: Write DTO validation tests for all param DTOs
-- [ ] Task 6.9: Update CLAUDE.md migration progress table, update MIGRATION.md if needed
-- [ ] Task 6.10: Final build + lint + full test suite verification
+- [x] Task 6.1: Write unit tests for `CustomerCareAirService` — 28 tests (airServerAdjuster, getSDP, getDedicatedAccounts, getOffers, getAccumulators, getPAM, getUsageCounter, getUsageThreshold, getSob, error logging)
+- [x] Task 6.2: Write unit tests for `CustomerCareNetworkService` — 26 tests (getHLR, getHSS, getMTAS, getSubscriptionHistory)
+- [x] Task 6.3: Write unit tests for `CustomerCareHistoryService` — 29 tests (getMsapSubscriptionHistory, getMsapVasSubscription, getCdrHistory, exportCdrHistoryExcel, getHourlyBalance, getDailyDAHistory, shareNSellTransactionHistory)
+- [x] Task 6.4: Write unit tests for `CustomerCareSdpTraceService` — 26 tests (setTrace, unsetTrace, fetchTrace, exports)
+- [x] Task 6.5: Write unit tests for `CustomerCareAirTraceService` — 32 tests (setAirTrace, unsetAirTrace, fetchAirTrace, exports, trace history)
+- [x] Task 6.6: Write unit tests for `CustomerCareService` (facade) — 30 delegation tests
+- [x] Task 6.7: Write unit tests for `CustomerCareController` — 37 endpoint handler tests (31 endpoints)
+- [x] Task 6.8: Write DTO validation tests for all param DTOs — 45 tests (12 DTO classes)
+- [x] Task 6.9: Update CLAUDE.md migration progress table
+- [x] Task 6.10: Final build + lint + full test suite verification — 1105 tests, 52 suites, all passing
 
 ### Verification
 

@@ -15,7 +15,7 @@ NestJS migration of enterprise telecom monitoring API. Express.js v3 → NestJS 
 ```bash
 npm run build          # TypeScript compilation — MUST pass before commit
 npm run lint           # ESLint + Prettier — MUST pass before commit
-npm test               # Jest unit tests — 852 tests, 44 suites
+npm test               # Jest unit tests — 1105 tests, 52 suites
 npm run test:cov       # Coverage report
 npm run test:e2e       # E2E tests (scaffold only until Phase 5)
 ```
@@ -32,7 +32,7 @@ npm run test:e2e       # E2E tests (scaffold only until Phase 5)
 | 3.3.2: WidgetBuilder, QBE | `migration/phase-3.3.2-reporting` | Done | `v0.3.3.2-migration-phase3.3.2` |
 | 3.4: Dashboards | `migration/phase-3.4-dashboards` | Done | `v0.3.4-migration-phase3.4` |
 | 3.5: Monitoring | `migration/phase-3.5-monitoring` | Done | `v0.3.5-migration-phase3.5` |
-| 3.6: Customer Care | `migration/phase-3.6-customer-care` | Pending | — |
+| 3.6: Customer Care | `migration/phase-3.6-customer-care` | Done | `v0.3.6-migration-phase3.6` |
 | 3.7: Processing | `migration/phase-3.7-processing` | Pending | — |
 | 3.8: Automation & Admin | `migration/phase-3.8-automation-admin` | Pending | — |
 | 3.9: Background Jobs | `migration/phase-3.9-background-jobs` | Pending | — |
@@ -209,6 +209,16 @@ GET `/` `/:fromdate/:todate/:filter` `/export/excel/:fromdate/:todate/:filter`
 GET `/` `/settings` `/test/:email`
 PUT `/view`
 PATCH `/view/:id` `/unsubscribe/:id`
+
+### Customer Care (`api/v1/operations`) — all JWT + PrivilegeGuard
+GET `/sdp/:msisdn/:test` `/dedicated-accounts/:msisdn/:test` `/offers/:msisdn/:test` `/accumulators/:msisdn/:test` `/pam/:msisdn/:test` `/usage-counter/:msisdn/:test` `/usage-threshold/:msisdn/:test` `/sob/:msisdn/:test`
+GET `/hlr/:msisdn` `/hss/:msisdn` `/mtas/:msisdn`
+GET `/hourlybalance/:date/:sdpvip/:msisdn` `/dadailyhistory/:fromdate/:todate/:sdpvip/:msisdn`
+GET `/subhistory/:fromdate/:todate/:test/:msisdn` `/msap/subhistory/:fromdate/:todate/:test/:msisdn` `/msap/vas/subhistory/:fromdate/:todate/:test/:msisdn`
+GET `/cdr/history/:fromdate/:todate/:msisdn` `/cdr/history/:fromdate/:todate/:msisdn/export`
+GET `/settrace/:sdpvip/:msisdn` `/unsettrace/:sdpvip/:msisdn` `/gettrace/:fromhour/:tohour/:sdpvip/:msisdn` `/gettrace/.../export` `/gettrace/.../export/raw`
+GET `/air/settrace/:msisdn` `/air/unsettrace/:msisdn` `/air/gettrace/:fromhour/:tohour/:msisdn` `/air/gettrace/.../export` `/air/download/trace/:fromhour/:tohour/:msisdn`
+GET `/trace/history/:fromdate/:todate` `/trace/pending` `/sellnshare/history/:fromdate/:todate/:msisdn`
 
 ### Health (`/health`) — Public
 DB ping, Redis ping, Memory heap 256MB
