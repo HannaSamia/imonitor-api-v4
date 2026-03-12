@@ -50,11 +50,11 @@ Implement HLR/HSS/MTAS queries (CIS HTTP API), subscription history (MSAP API), 
 
 ### Tasks
 
-- [ ] Task 3.1: Create `CustomerCareNetworkService` — `getHLR()`, `getHSS()`, `getMTAS()` via CIS HTTPS API with custom certificates from SystemConfig
-- [ ] Task 3.2: Create `CustomerCareHistoryService` — `getSubscriptionHistory()`, `getMsapSubscriptionHistory()`, `getMsapVasSubscription()` via MSAP REST API with API key + certificates
-- [ ] Task 3.3: Implement CDR history — `getCdrHistory()` and `exportCdrHistoryExcel()` via DAAS API, with paginated retrieval and Excel export using `ExportHelperService`
-- [ ] Task 3.4: Implement balance queries — `getHourlyBalance()` and `getDailyDAHistory()` querying iMonitorData tables via `LegacyDataDbService`
-- [ ] Task 3.5: Implement `shareNSellTransactionHistory()` — query iMonitorData via `LegacyDataDbService`
+- [x] Task 3.1: Create `CustomerCareNetworkService` — `getHLR()`, `getHSS()`, `getMTAS()` via CIS HTTPS API with custom certificates from SystemConfig
+- [x] Task 3.2: Create `CustomerCareHistoryService` — `getSubscriptionHistory()`, `getMsapSubscriptionHistory()`, `getMsapVasSubscription()` via MSAP REST API with API key + certificates
+- [x] Task 3.3: Implement CDR history — `getCdrHistory()` and `exportCdrHistoryExcel()` via DAAS API, with paginated retrieval and Excel export using `ExportHelperService`
+- [x] Task 3.4: Implement balance queries — `getHourlyBalance()` and `getDailyDAHistory()` querying iMonitorData tables via `LegacyDataDbService`
+- [x] Task 3.5: Implement `shareNSellTransactionHistory()` — query iMonitorData via `LegacyDataDbService`
 
 ### Verification
 
