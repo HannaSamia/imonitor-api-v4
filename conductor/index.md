@@ -12,7 +12,7 @@ Navigation hub for project context.
 
 ## Active Tracks
 
-- [ ] **[Phase 4 — Socket.IO Gateways](./tracks/phase4-socketio_20260313/index.md)** — 6 NestJS WebSocket gateways, WsJwtGuard, Redis adapter, Bottleneck ETL limiter
+_None — all tracks complete through Phase 4._
 
 ## Completed Tracks
 
@@ -23,6 +23,12 @@ Navigation hub for project context.
 - [x] Phase 3.3.1: Reports Module
 - [x] Phase 3.3.2: WidgetBuilder, QBE & Remaining Reporting
 - [x] Phase 3.4: Dashboards, RotatingDashboard & DataAnalysis
+- [x] Phase 3.5: Monitoring (Observability, Connectivity, Notifications)
+- [x] Phase 3.6: Customer Care
+- [x] Phase 3.7: Processing (BulkProcessing, BulkEda, CdrDecoder, BillRun, Tariff)
+- [x] Phase 3.8: Automation & Admin
+- [x] Phase 3.9: Background Jobs (Scheduler + Workers)
+- [x] **[Phase 4: Socket.IO Gateways](./tracks/phase4-socketio_20260313/index.md)** — `v0.4.0-migration-phase4`
 
 ## Getting Started
 
