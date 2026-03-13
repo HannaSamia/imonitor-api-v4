@@ -28,7 +28,9 @@ async function updateProcess(
   id: string,
   data: Record<string, string | number | null>,
 ): Promise<void> {
-  const fields = Object.keys(data).map((k) => `${k} = ?`).join(', ');
+  const fields = Object.keys(data)
+    .map((k) => `${k} = ?`)
+    .join(', ');
   const values = Object.values(data);
   await pool.execute(`UPDATE core_bill_run_process SET ${fields} WHERE id = ?`, [...values, id]);
 }

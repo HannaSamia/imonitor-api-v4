@@ -11,15 +11,7 @@ import {
   UseInterceptors,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
-import {
-  ApiBearerAuth,
-  ApiBody,
-  ApiConsumes,
-  ApiOperation,
-  ApiParam,
-  ApiResponse,
-  ApiTags,
-} from '@nestjs/swagger';
+import { ApiBearerAuth, ApiBody, ApiConsumes, ApiOperation, ApiParam, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { Response } from 'express';
 import { PrivilegeGuard } from '../../auth/guards/privilege.guard';
 import { CurrentUser } from '../../auth/decorators/current-user.decorator';
@@ -81,10 +73,7 @@ export class BillRunController {
   @ApiOperation({ summary: 'Delete a bill run process and its files' })
   @ApiParam({ name: 'id', description: 'Process ID' })
   @ApiResponse({ status: 200, description: 'Process deleted' })
-  async delete(
-    @Param('id') id: string,
-    @CurrentUser('id') userId: string,
-  ): Promise<void> {
+  async delete(@Param('id') id: string, @CurrentUser('id') userId: string): Promise<void> {
     return this.billRunService.delete(id, userId);
   }
 }

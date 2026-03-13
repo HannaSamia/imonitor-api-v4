@@ -7,11 +7,7 @@ import { BillRunController } from './bill-run.controller';
 import { BillRunService } from './bill-run.service';
 
 @Module({
-  imports: [
-    SharedModule,
-    LegacyPrestoModule,
-    TypeOrmModule.forFeature([CoreBillRunProcess]),
-  ],
+  imports: [SharedModule, LegacyPrestoModule, TypeOrmModule.forFeature([CoreBillRunProcess])],
   controllers: [BillRunController],
   providers: [BillRunService],
 })

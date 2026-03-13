@@ -51,11 +51,7 @@ export class BillRunService {
       .getRawMany<ListBillRunDto>();
   }
 
-  async add(
-    file: Express.Multer.File,
-    name: string,
-    currentUserId: string,
-  ): Promise<{ id: string }> {
+  async add(file: Express.Multer.File, name: string, currentUserId: string): Promise<{ id: string }> {
     const ext = extname(file.originalname).replace('.', '').toLowerCase();
     if (ext !== 'csv') {
       throw new BadRequestException(ErrorMessages.BILLRUN_ONLY_CSV);
@@ -103,20 +99,13 @@ export class BillRunService {
 
     runWorker<BillRunWorkDto>(BILLRUN_WORKER_PATH, workerData).catch((error: Error) => {
       this.logger.warn(`[BillRun] Worker failed for ${processId}: ${error.message}`);
-      this.billRunRepo.update(
-        { id: processId },
-        { status: BillRunStatus.FAILED, errorMessage: error.message },
-      );
+      this.billRunRepo.update({ id: processId }, { status: BillRunStatus.FAILED, errorMessage: error.message });
     });
 
     return { id: processId };
   }
 
-  async download(
-    processId: string,
-    type: BillRunFileType,
-    currentUserId: string,
-  ): Promise<string> {
+  async download(processId: string, type: BillRunFileType, currentUserId: string): Promise<string> {
     const record = await this.billRunRepo.findOne({
       where: { id: processId, createdBy: currentUserId },
       select: { id: true, inputFilePath: true, outputFilePath: true, status: true },
@@ -129,9 +118,7 @@ export class BillRunService {
       throw new BadRequestException(ErrorMessages.BILLRUN_NOT_COMPLETED);
     }
 
-    const filePath = type === BillRunFileType.INPUT
-      ? record.inputFilePath
-      : record.outputFilePath;
+    const filePath = type === BillRunFileType.INPUT ? record.inputFilePath : record.outputFilePath;
 
     if (!filePath) {
       throw new BadRequestException(ErrorMessages.BILLRUN_FILE_UNAVAILABLE);
