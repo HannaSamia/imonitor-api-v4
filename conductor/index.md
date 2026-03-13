@@ -12,7 +12,7 @@ Navigation hub for project context.
 
 ## Active Tracks
 
-- [ ] **[Phase 3.5: Monitoring (Observability, Connectivity, Notifications)](./tracks/phase3.5-monitoring_20260311/index.md)** — Observability (30 endpoints), Connectivity (3 endpoints), Notifications (6 endpoints)
+- [ ] **[Phase 4 — Socket.IO Gateways](./tracks/phase4-socketio_20260313/index.md)** — 6 NestJS WebSocket gateways, WsJwtGuard, Redis adapter, Bottleneck ETL limiter
 
 ## Completed Tracks
 

@@ -1,0 +1,16 @@
+{
+  "id": "phase4-socketio_20260313",
+  "title": "Phase 4 — Socket.IO Gateways",
+  "type": "feature",
+  "status": "pending",
+  "created": "2026-03-13T00:00:00.000Z",
+  "updated": "2026-03-13T00:00:00.000Z",
+  "phases": {
+    "total": 4,
+    "completed": 0
+  },
+  "tasks": {
+    "total": 21,
+    "completed": 0
+  }
+}

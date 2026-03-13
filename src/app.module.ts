@@ -38,6 +38,7 @@ import { AuditLogModule } from './modules/audit-log/audit-log.module';
 import { UtilityModule } from './modules/utility/utility.module';
 import { DeploymentModule } from './modules/deployment/deployment.module';
 import { SchedulerModule } from './modules/scheduler/scheduler.module';
+import { GatewaysModule } from './gateways/gateways.module';
 import { CorrelationIdMiddleware } from './logger/correlation-id.middleware';
 import { RequestFilterMiddleware } from './shared/middleware/request-filter.middleware';
 import { RateLimiterMiddleware } from './shared/middleware/rate-limiter.middleware';
@@ -91,6 +92,7 @@ import { GlobalExceptionFilter } from './shared/filters/global-exception.filter'
     UtilityModule,
     DeploymentModule,
     SchedulerModule,
+    GatewaysModule,
   ],
   providers: [
     // Global guard — JWT auth on all routes (unless @Public())

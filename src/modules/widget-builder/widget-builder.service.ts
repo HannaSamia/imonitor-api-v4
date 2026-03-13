@@ -1616,4 +1616,22 @@ export class WidgetBuilderService {
       }
     }
   }
+
+  // =========================================================================
+  // FETCH WIDGET BUILDERS BY TABLE NAME (Phase 4 — Socket.IO / ETL trigger)
+  // =========================================================================
+
+  /**
+   * Fetch all widget builder IDs that use the given table name.
+   * v3: fetchWidgetBuilderBytables()
+   */
+  async fetchWidgetBuildersByTableName(tableName: string): Promise<string[]> {
+    const results = await this.usedTablesRepo
+      .createQueryBuilder('ut')
+      .select('ut.widgetBuilderId', 'widgetBuilderId')
+      .where('ut.tableName = :tableName', { tableName })
+      .distinct(true)
+      .getRawMany<{ widgetBuilderId: string }>();
+    return results.map((r) => r.widgetBuilderId);
+  }
 }

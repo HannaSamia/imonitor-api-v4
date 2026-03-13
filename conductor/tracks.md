@@ -14,5 +14,6 @@
 | [x] | phase3.7-processing_20260312 | Phase 3.7 — Processing (BulkProcessing, BulkEda, CdrDecoder, BillRun, Tariff) | 2026-03-12 | 2026-03-13 |
 | [x] | phase3.8-automation-admin_20260313 | Phase 3.8 — Automation & Admin (AutomatedReport, AuditLog, Utility, Deployment) | 2026-03-13 | 2026-03-13 |
 | [x] | phase3.9-background-jobs_20260313 | Phase 3.9 — Background Jobs (Scheduler + Worker Scripts) | 2026-03-13 | 2026-03-13 |
+| [ ] | phase4-socketio_20260313 | Phase 4 — Socket.IO Gateways | 2026-03-13 | 2026-03-13 |
 
 <!-- Tracks registered by /conductor:new-track -->

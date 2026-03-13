@@ -7,6 +7,7 @@ import { AppModule } from './app.module';
 import { ClusterService } from './cluster/cluster.service';
 import { AppLogger } from './logger/logger.service';
 import { createValidationPipe } from './shared/pipes/validation.pipe';
+import { RedisIoAdapter } from './gateways/redis-io-adapter';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule, {
@@ -57,6 +58,14 @@ async function bootstrap() {
   app.enableShutdownHooks();
 
   const port = configService.get<number>('PORT', 5011);
+
+  // Redis-backed Socket.IO adapter for cross-worker pub/sub and sticky sessions
+  const redisHost = configService.get<string>('REDIS_HOST', 'localhost');
+  const redisPort = configService.get<number>('REDIS_PORT', 6379);
+  const redisPassword = configService.get<string>('REDIS_PASSWORD', '');
+  const redisIoAdapter = new RedisIoAdapter(app);
+  await redisIoAdapter.connectToRedis(redisHost, redisPort, redisPassword || undefined);
+  app.useWebSocketAdapter(redisIoAdapter);
 
   await app.listen(port);
   logger.log(`Application running on port ${port}`, 'Bootstrap');

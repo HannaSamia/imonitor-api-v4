@@ -1,5 +1,6 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { getRepositoryToken } from '@nestjs/typeorm';
+import { EventEmitter2 } from '@nestjs/event-emitter';
 import { NotificationService } from './notification.service';
 import { CoreNotificationSent } from '../../database/entities/core-notification-sent.entity';
 import { CoreNotificationSettings } from '../../database/entities/core-notification-settings.entity';
@@ -121,6 +122,7 @@ describe('NotificationService', () => {
         { provide: getRepositoryToken(CoreWidgetBuilderCharts), useValue: wbChartsRepo },
         { provide: DateHelperService, useValue: mockDateHelper },
         { provide: SystemConfigService, useValue: mockSystemConfigService },
+        { provide: EventEmitter2, useValue: { emit: jest.fn() } },
       ],
     }).compile();
 
