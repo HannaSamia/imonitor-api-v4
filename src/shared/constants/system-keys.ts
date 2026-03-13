@@ -39,6 +39,20 @@ export const SystemKeys = {
   dsmTransactionHistAPI: 'DsmTransactionHistAPI',
   dsmAuthorizationKey: 'DsmAuthorizationKey',
 
+  // Date format (v3 key 'dateFormat1')
+  dateFormat1: 'dateFormat1',
+
+  // Bulk Processing — AIR/EDA config (preserving v3 key names exactly)
+  bulkProcessAirs: 'bulk_process_ips',
+  bulkEdaUser: 'bulk_eda_user',
+  bulkEdaPass: 'bulk_eda_pass',
+  bulkEdaEndpoint: 'bulk_eda_endpoint',
+  airRequestDateFormat: 'air_date_time',
+  airRateLimit: 'bulk_air_rate_limit',
+  airRateLimitSleep: 'bulk_air_rate_limit_sleep',
+  updateSdpMaAmountMultiplier: 'update_sdp_ma_amount_multiplier',
+  updateSdpDaAmountMultiplier: 'update_sdp_da_amount_multiplier',
+
   // Tariff Log — external process service (preserving v3 key names exactly)
   tarrifProcessUrl: 'tarrifProcessUrl',
   tarrifPullProcessUrl: 'tarrifPullProcessUrl',

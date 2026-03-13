@@ -28,6 +28,7 @@ import { ObservabilityModule } from './modules/observability/observability.modul
 import { ConnectivityModule } from './modules/connectivity/connectivity.module';
 import { NotificationModule } from './modules/notifications/notification.module';
 import { CustomerCareModule } from './modules/customer-care/customer-care.module';
+import { BulkProcessingModule } from './modules/bulk-processing/bulk-processing.module';
 import { CorrelationIdMiddleware } from './logger/correlation-id.middleware';
 import { RequestFilterMiddleware } from './shared/middleware/request-filter.middleware';
 import { RateLimiterMiddleware } from './shared/middleware/rate-limiter.middleware';
@@ -71,6 +72,7 @@ import { GlobalExceptionFilter } from './shared/filters/global-exception.filter'
     ConnectivityModule,
     NotificationModule,
     CustomerCareModule,
+    BulkProcessingModule,
   ],
   providers: [
     // Global guard — JWT auth on all routes (unless @Public())
