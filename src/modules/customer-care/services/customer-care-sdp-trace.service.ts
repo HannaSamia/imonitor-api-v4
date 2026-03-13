@@ -3,6 +3,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { writeFile } from 'fs/promises';
 import { join } from 'path';
+import { ConfigService } from '@nestjs/config';
 import { SystemConfigService } from '../../../shared/services/system-config.service';
 import { DateHelperService } from '../../../shared/services/date-helper.service';
 import { LegacyDataDbService } from '../../../database/legacy-data-db/legacy-data-db.service';
@@ -55,6 +56,7 @@ export class CustomerCareSdpTraceService {
     private readonly dateHelperService: DateHelperService,
     private readonly legacyDataDbService: LegacyDataDbService,
     private readonly exportHelperService: ExportHelperService,
+    private readonly configService: ConfigService,
     @InjectRepository(CoreTraceTracker)
     private readonly traceTrackerRepo: Repository<CoreTraceTracker>,
   ) {}
@@ -304,8 +306,8 @@ export class CustomerCareSdpTraceService {
    * Queries V3_sdp_nodes with AES_DECRYPT for passwords.
    */
   private async getSdpSshConfig(sdpVIP: string, isLiveOnly = true): Promise<TraceSystemConfigDTO[]> {
-    const coreDb = process.env.DB_CORE_NAME || 'iMonitorV3_1';
-    const dataDb = process.env.DB_DATA_NAME || 'iMonitorData';
+    const coreDb = this.configService.get<string>('DB_CORE_NAME', 'iMonitorV3_1');
+    const dataDb = this.configService.get<string>('DB_DATA_NAME', 'iMonitorData');
 
     const encKeySubQuery = `SELECT confVal FROM \`${coreDb}\`.core_sys_config WHERE confKey = ?`;
 

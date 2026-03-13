@@ -12,7 +12,7 @@ Navigation hub for project context.
 
 ## Active Tracks
 
-_None — all tracks complete through Phase 4._
+- [ ] **[Phase 3.10: Env Centralization Tech Debt](./tracks/phase3.10-env-centralization_20260313/index.md)**
 
 ## Completed Tracks
 

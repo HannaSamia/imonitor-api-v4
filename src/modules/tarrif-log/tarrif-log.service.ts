@@ -1,4 +1,5 @@
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { InjectRepository } from '@nestjs/typeorm';
 import axios from 'axios';
 import { join } from 'path';
@@ -27,6 +28,7 @@ export class TarrifLogService {
     private readonly legacyDataDb: LegacyDataDbService,
     private readonly systemConfig: SystemConfigService,
     private readonly dateHelper: DateHelperService,
+    private readonly configService: ConfigService,
   ) {}
 
   async list(): Promise<ListTarrifLogDto[]> {
@@ -42,7 +44,7 @@ export class TarrifLogService {
         `DATE_FORMAT(p.compareToDate, '${fmt}') AS compareDate`,
         `DATE_FORMAT(p.createdAt, '${fmt}') AS createdAt`,
         // A-C-01 fix: V3_service_classes lives in the data DB — use fully-qualified DB prefix
-        `IFNULL((SELECT sc_name FROM \`${process.env.DB_DATA_NAME ?? 'iMonitorData'}\`.\`V3_service_classes\` WHERE sc_code = p.serviceClassId), 'Not Found') AS tarrif`,
+        `IFNULL((SELECT sc_name FROM \`${this.configService.get<string>('DB_DATA_NAME', 'iMonitorData')}\`.\`V3_service_classes\` WHERE sc_code = p.serviceClassId), 'Not Found') AS tarrif`,
         '(SELECT u.userName FROM core_application_users u WHERE u.id = p.createdBy) AS createdBy',
       ])
       .where('p.isDeleted = 0')

@@ -9,6 +9,7 @@ jest.mock('../../shared/helpers/common.helper', () => ({
 import { BadRequestException, NotFoundException } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
 import { getRepositoryToken } from '@nestjs/typeorm';
+import { ConfigService } from '@nestjs/config';
 import axios from 'axios';
 import { CoreTarrifProcess } from '../../database/entities/core-tarrif-process.entity';
 import { CoreTarrifRecords } from '../../database/entities/core-tarrif-records.entity';
@@ -138,6 +139,10 @@ describe('TarrifLogService', () => {
         { provide: LegacyDataDbService, useValue: mockLegacyDataDb },
         { provide: SystemConfigService, useValue: mockSystemConfig },
         { provide: DateHelperService, useValue: mockDateHelper },
+        {
+          provide: ConfigService,
+          useValue: { get: jest.fn().mockImplementation((key: string) => ({ DB_DATA_NAME: 'iMonitorData' })[key]) },
+        },
       ],
     }).compile();
 

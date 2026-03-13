@@ -15,7 +15,7 @@ NestJS migration of enterprise telecom monitoring API. Express.js v3 → NestJS 
 ```bash
 npm run build          # TypeScript compilation — MUST pass before commit
 npm run lint           # ESLint + Prettier — MUST pass before commit
-npm test               # Jest unit tests — 1337 tests, 75 suites
+npm test               # Jest unit tests — 1397 tests, 83 suites
 npm run test:cov       # Coverage report
 npm run test:e2e       # E2E tests (scaffold only until Phase 5)
 ```
@@ -36,7 +36,9 @@ npm run test:e2e       # E2E tests (scaffold only until Phase 5)
 | 3.7: Processing | `migration/phase-3.7-processing` | Done | `v0.3.7-migration-phase3.7` |
 | 3.8: Automation & Admin | `migration/phase-3.8-automation-admin` | Done | `v0.3.8-migration-phase3.8` |
 | 3.9: Background Jobs | `migration/phase-3.9-background-jobs` | Done | `v0.3.9-migration-phase3.9` |
-| 4: Socket.IO | `migration/phase-4-socketio` | Pending | — |
+| 3.10: Env Centralization | `migration/phase-3.10-env-centralization` | Pending | — |
+| 4: Socket.IO | `migration/phase-4-socketio` | Done | `v0.4.0-migration-phase4` |
+| 4.1: Socket.IO Security Fixes | `fix/phase4-socketio-security-review` | Done | `v0.4.1-socketio-security-fixes` |
 | 5: Testing & Validation | `migration/phase-5-testing` | Pending | `v1.0.0-nestjs-migration` |
 | 6: Parallel API Verification | `migration/phase-6-parallel-verification` | Pending | `v1.1.0-parallel-verified` |
 | 7: QueryBuilder Refactor | `migration/phase-7-querybuilder-refactor` | Pending | `v1.2.0-querybuilder-refactored` |

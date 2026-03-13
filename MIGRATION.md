@@ -1262,15 +1262,24 @@ This gives decoupling benefits without CQRS overhead.
 | 3.7 | `migration/phase-3.7-processing` | BulkProcessing, BulkEda, CdrDecoder, BillRun, Tariff |
 | 3.8 | `migration/phase-3.8-automation-admin` | AutomatedReport, AuditLog, Utility, Deployment |
 | 3.9 | `migration/phase-3.9-background-jobs` | Scheduler, Worker modules |
+| 3.10 | `migration/phase-3.10-env-centralization` | Env centralization tech debt (deferred from 3.8) |
 
-#### Tech Debt — Phase 3.8 pre-work
+#### Tech Debt — Phase 3.8 pre-work (deferred to Phase 3.10)
 
-- **Env centralization**: Replace all `process.env.X \|\| 'fallback'` direct accesses in main-thread services with `ConfigService.get()`. Add missing vars (`DB_DATA_NAME`) to `env.validation.ts` with proper Joi defaults. Worker scripts (`cdrDecoder.worker.ts`, `billRun.worker.ts`) are exempt — `process.env` is correct there since NestJS DI is unavailable in `worker_threads`.
+- **Env centralization**: Replace all `process.env.X \|\| 'fallback'` direct accesses in main-thread services with `ConfigService.get()`. Add missing vars (`DB_DATA_NAME`, `DB_CORE_NAME`) to `env.validation.ts` with proper Joi defaults. Worker scripts (`cdrDecoder.worker.ts`, `billRun.worker.ts`) are exempt — `process.env` is correct there since NestJS DI is unavailable in `worker_threads`.
+- Affected services: `customer-care-sdp-trace.service.ts`, `customer-care-history.service.ts`, `customer-care-air-trace.service.ts`, `tarrif-log.service.ts`
+- Partial fix already applied: `DB_DATA_NAME` in `dashboard.gateway.ts` (landed in `v0.4.1-socketio-security-fixes`)
 
-### Phase 4: Socket.IO Robustness
+### Phase 3.10: Env Centralization Tech Debt
+**Branch:** `migration/phase-3.10-env-centralization`
+
+Replace remaining `process.env` direct accesses in main-thread services with `ConfigService.get()`. Add `DB_CORE_NAME` to `env.validation.ts`.
+
+### Phase 4: Socket.IO Gateways
 **Branch:** `migration/phase-4-socketio`
+**Tag:** `v0.4.0-migration-phase4` | Security fixes: `v0.4.1-socketio-security-fixes`
 
-6 Gateway classes + Redis adapter + JWT WsGuard + Bottleneck rate limiter
+6 Gateway classes + Redis adapter + JWT WsGuard + Bottleneck rate limiter. Security review completed 2026-03-13; all P0/P1 findings resolved.
 
 ### Phase 5: Testing & Validation
 **Branch:** `migration/phase-5-testing`

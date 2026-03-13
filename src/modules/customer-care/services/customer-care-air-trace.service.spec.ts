@@ -1,6 +1,7 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { getRepositoryToken } from '@nestjs/typeorm';
 import { BadRequestException } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { CustomerCareAirTraceService } from './customer-care-air-trace.service';
 import { SystemConfigService } from '../../../shared/services/system-config.service';
 import { DateHelperService } from '../../../shared/services/date-helper.service';
@@ -63,6 +64,16 @@ describe('CustomerCareAirTraceService', () => {
         { provide: DateHelperService, useValue: dateHelperService },
         { provide: LegacyDataDbService, useValue: legacyDataDbService },
         { provide: ExportHelperService, useValue: exportHelperService },
+        {
+          provide: ConfigService,
+          useValue: {
+            get: jest
+              .fn()
+              .mockImplementation(
+                (key: string) => ({ DB_CORE_NAME: 'iMonitorV3_1', DB_DATA_NAME: 'iMonitorData' })[key],
+              ),
+          },
+        },
         { provide: getRepositoryToken(CoreTraceTracker), useValue: traceTrackerRepo },
       ],
     }).compile();

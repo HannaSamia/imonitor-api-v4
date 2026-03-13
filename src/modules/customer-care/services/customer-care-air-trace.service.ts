@@ -1,6 +1,7 @@
 import { Injectable, Logger, BadRequestException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
+import { ConfigService } from '@nestjs/config';
 import { SystemConfigService } from '../../../shared/services/system-config.service';
 import { DateHelperService } from '../../../shared/services/date-helper.service';
 import { LegacyDataDbService } from '../../../database/legacy-data-db/legacy-data-db.service';
@@ -62,6 +63,7 @@ export class CustomerCareAirTraceService {
     private readonly dateHelperService: DateHelperService,
     private readonly legacyDataDbService: LegacyDataDbService,
     private readonly exportHelperService: ExportHelperService,
+    private readonly configService: ConfigService,
     @InjectRepository(CoreTraceTracker)
     private readonly traceTrackerRepo: Repository<CoreTraceTracker>,
   ) {}
@@ -285,7 +287,7 @@ export class CustomerCareAirTraceService {
    * Mirrors v3 lines 2424-2449: raw SQL query with DATE_FORMAT and LEFT JOIN.
    */
   async fetchTraceHistory(fromDate: string, toDate: string): Promise<CustomerCareBasicResponse> {
-    const coreDb = process.env.DB_CORE_NAME || 'iMonitorV3_1';
+    const coreDb = this.configService.get<string>('DB_CORE_NAME', 'iMonitorV3_1');
 
     const formattedFrom = this.dateHelperService.formatDate('yyyy-MM-dd HH:mm:ss', new Date(fromDate));
     const formattedTo = this.dateHelperService.formatDate('yyyy-MM-dd HH:mm:ss', new Date(toDate));
@@ -312,7 +314,7 @@ export class CustomerCareAirTraceService {
    * Mirrors v3 lines 2452-2481.
    */
   async fetchTracedNumbers(): Promise<CustomerCareBasicResponse> {
-    const coreDb = process.env.DB_CORE_NAME || 'iMonitorV3_1';
+    const coreDb = this.configService.get<string>('DB_CORE_NAME', 'iMonitorV3_1');
 
     const sql = `
       SELECT t.phoneNumber, t.node,
@@ -346,8 +348,8 @@ export class CustomerCareAirTraceService {
    * Queries V3_air_nodes with AES_DECRYPT for passwords.
    */
   private async getAirNodeCredentials(): Promise<TraceSystemConfigDTO[]> {
-    const coreDb = process.env.DB_CORE_NAME || 'iMonitorV3_1';
-    const dataDb = process.env.DB_DATA_NAME || 'iMonitorData';
+    const coreDb = this.configService.get<string>('DB_CORE_NAME', 'iMonitorV3_1');
+    const dataDb = this.configService.get<string>('DB_DATA_NAME', 'iMonitorData');
 
     const encKeySubQuery = `SELECT confVal FROM \`${coreDb}\`.core_sys_config WHERE confKey = ?`;
 

@@ -1,5 +1,6 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { BadRequestException } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import axios from 'axios';
 import { CustomerCareHistoryService } from './customer-care-history.service';
 import { SystemConfigService } from '../../../shared/services/system-config.service';
@@ -65,6 +66,16 @@ describe('CustomerCareHistoryService', () => {
         { provide: SystemConfigService, useValue: systemConfigService },
         { provide: LegacyDataDbService, useValue: legacyDataDbService },
         { provide: ExportHelperService, useValue: exportHelperService },
+        {
+          provide: ConfigService,
+          useValue: {
+            get: jest
+              .fn()
+              .mockImplementation(
+                (key: string) => ({ DB_CORE_NAME: 'iMonitorV3_1', DB_DATA_NAME: 'iMonitorData' })[key],
+              ),
+          },
+        },
       ],
     }).compile();
 

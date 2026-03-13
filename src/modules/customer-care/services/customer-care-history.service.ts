@@ -1,4 +1,5 @@
 import { Injectable, Logger, BadRequestException } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import axios from 'axios';
 import * as https from 'https';
 import { promises as fsPromises } from 'fs';
@@ -38,6 +39,7 @@ export class CustomerCareHistoryService {
     private readonly dateHelperService: DateHelperService,
     private readonly legacyDataDbService: LegacyDataDbService,
     private readonly exportHelperService: ExportHelperService,
+    private readonly configService: ConfigService,
   ) {}
 
   // ============================================================
@@ -215,7 +217,7 @@ export class CustomerCareHistoryService {
     ];
 
     // Get cluster name from SDP nodes
-    const clusterQuery = `SELECT CONCAT(cluster,'1') AS cluster FROM \`${process.env.DB_DATA_NAME || 'iMonitorData'}\`.V3_sdp_nodes WHERE vip=? LIMIT 1`;
+    const clusterQuery = `SELECT CONCAT(cluster,'1') AS cluster FROM \`${this.configService.get<string>('DB_DATA_NAME', 'iMonitorData')}\`.V3_sdp_nodes WHERE vip=? LIMIT 1`;
     const clusterResult = await this.legacyDataDbService.query<{ cluster: string }>(clusterQuery, [sdpVip]);
 
     if (!clusterResult || clusterResult.length === 0) {
@@ -228,8 +230,8 @@ export class CustomerCareHistoryService {
     const daDumpPath = `/var/opt/fds/dumps/${clusterResult[0].cluster}`;
 
     // Get SSH credentials for central storage nodes
-    const encKeyQuery = `SELECT confVal FROM \`${process.env.DB_CORE_NAME || 'iMonitorV3_1'}\`.core_sys_config WHERE confKey = ?`;
-    const sshConfigQuery = `SELECT ip_address, ssh_user, AES_DECRYPT(ssh_pass, (${encKeyQuery})) AS ssh_pass FROM \`${process.env.DB_DATA_NAME || 'iMonitorData'}\`.V3_central_storage_nodes`;
+    const encKeyQuery = `SELECT confVal FROM \`${this.configService.get<string>('DB_CORE_NAME', 'iMonitorV3_1')}\`.core_sys_config WHERE confKey = ?`;
+    const sshConfigQuery = `SELECT ip_address, ssh_user, AES_DECRYPT(ssh_pass, (${encKeyQuery})) AS ssh_pass FROM \`${this.configService.get<string>('DB_DATA_NAME', 'iMonitorData')}\`.V3_central_storage_nodes`;
     const sshConfig = await this.legacyDataDbService.query<{
       ip_address: string;
       ssh_user: string;
@@ -297,7 +299,7 @@ export class CustomerCareHistoryService {
     sdpVip: string,
     msisdn: string,
   ): Promise<CustomerCareResponse<DailyDaBodyDTO>> {
-    const clusterQuery = `SELECT CONCAT(cluster,'1') AS cluster FROM \`${process.env.DB_DATA_NAME || 'iMonitorData'}\`.V3_sdp_nodes WHERE vip=? LIMIT 1`;
+    const clusterQuery = `SELECT CONCAT(cluster,'1') AS cluster FROM \`${this.configService.get<string>('DB_DATA_NAME', 'iMonitorData')}\`.V3_sdp_nodes WHERE vip=? LIMIT 1`;
     const clusterResult = await this.legacyDataDbService.query<{ cluster: string }>(clusterQuery, [sdpVip]);
 
     if (!clusterResult || clusterResult.length === 0) {
@@ -309,8 +311,8 @@ export class CustomerCareHistoryService {
     const daDumpPath = `/var/opt/fds/dumps/${clusterResult[0].cluster}`;
 
     // Get SSH credentials
-    const encKeyQuery = `SELECT confVal FROM \`${process.env.DB_CORE_NAME || 'iMonitorV3_1'}\`.core_sys_config WHERE confKey = ?`;
-    const sshConfigQuery = `SELECT ip_address, ssh_user, AES_DECRYPT(ssh_pass, (${encKeyQuery})) AS ssh_pass FROM \`${process.env.DB_DATA_NAME || 'iMonitorData'}\`.V3_central_storage_nodes`;
+    const encKeyQuery = `SELECT confVal FROM \`${this.configService.get<string>('DB_CORE_NAME', 'iMonitorV3_1')}\`.core_sys_config WHERE confKey = ?`;
+    const sshConfigQuery = `SELECT ip_address, ssh_user, AES_DECRYPT(ssh_pass, (${encKeyQuery})) AS ssh_pass FROM \`${this.configService.get<string>('DB_DATA_NAME', 'iMonitorData')}\`.V3_central_storage_nodes`;
     const sshConfig = await this.legacyDataDbService.query<{
       ip_address: string;
       ssh_user: string;

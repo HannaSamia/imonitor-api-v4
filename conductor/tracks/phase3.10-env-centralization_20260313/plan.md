@@ -30,15 +30,15 @@ read with `this.configService.get<string>('VAR_NAME')`.
 
 ### Tasks
 
-- [ ] Task 2.1: Fix `customer-care-sdp-trace.service.ts` — inject `ConfigService`, replace `DB_CORE_NAME` and `DB_DATA_NAME`
-- [ ] Task 2.2: Fix `customer-care-history.service.ts` — inject `ConfigService`, replace `DB_CORE_NAME` and `DB_DATA_NAME` (6 occurrences)
-- [ ] Task 2.3: Fix `customer-care-air-trace.service.ts` — inject `ConfigService`, replace `DB_CORE_NAME` and `DB_DATA_NAME`
-- [ ] Task 2.4: Fix `tarrif-log.service.ts` — inject `ConfigService`, replace `DB_DATA_NAME`
+- [x] Task 2.1: Fix `customer-care-sdp-trace.service.ts` — inject `ConfigService`, replace `DB_CORE_NAME` and `DB_DATA_NAME`
+- [x] Task 2.2: Fix `customer-care-history.service.ts` — inject `ConfigService`, replace `DB_CORE_NAME` and `DB_DATA_NAME` (6 occurrences)
+- [x] Task 2.3: Fix `customer-care-air-trace.service.ts` — inject `ConfigService`, replace `DB_CORE_NAME` and `DB_DATA_NAME`
+- [x] Task 2.4: Fix `tarrif-log.service.ts` — inject `ConfigService`, replace `DB_DATA_NAME`
 
 ### Verification
 
-- [ ] `npm run build` passes
-- [ ] `npm run lint` passes (no unused-vars warnings introduced)
+- [x] `npm run build` passes
+- [x] `npm run lint` passes (no unused-vars warnings introduced)
 
 ## Phase 3: Final Verification
 
