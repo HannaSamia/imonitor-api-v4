@@ -64,18 +64,18 @@ Create the two missing TypeORM entities, all enums, all DTOs, and verify existin
 
 ### Tasks
 
-- [ ] Task 3.1: Create `BulkEdaReportService` — inject `CoreBulkEdaReports` repo + `SystemConfigService` + `DateHelperService` + `CustomerCareService`; implement `list()` as raw SQL on `CoreBulkEdaReports` (format dates via `DateHelperService`, join user name)
-- [ ] Task 3.2: Implement `uploadCSV(userId, file)` — validate max 50 rows, write input CSV to `assets/eda/bulkProcessing/`, insert `CoreBulkEdaReports` record, loop rows calling `CustomerCareService.getHLR/getHSS/getSob/getOffers/getDedicatedAccounts`, build CSV + Excel output via ExcelJS, update record to `finished`
-- [ ] Task 3.3: Implement `download(id, type)` — query `CoreBulkEdaReports`, return input CSV path or output Excel path
-- [ ] Task 3.4: Implement `delete(userId, id)` — owner check, delete files, remove DB record; preserve `UNAUTHORIZED_YOU_ARE_NOT_THE_OWNER` error message
-- [ ] Task 3.5: Create `BulkEdaReportController` — 4 endpoints, `@UseGuards(PrivilegeGuard)`, `FileInterceptor` on upload, full Swagger
-- [ ] Task 3.6: Create `BulkEdaReportModule` — import `SharedModule`, `CustomerCareModule`, `TypeOrmModule.forFeature([CoreBulkEdaReports])`
+- [x] Task 3.1: Create `BulkEdaReportService` — inject `CoreBulkEdaReports` repo + `SystemConfigService` + `DateHelperService` + `CustomerCareService`; implement `list()` as raw SQL on `CoreBulkEdaReports` (format dates via `DateHelperService`, join user name)
+- [x] Task 3.2: Implement `uploadCSV(userId, file)` — validate max 50 rows, write input CSV to `assets/eda/bulkProcessing/`, insert `CoreBulkEdaReports` record, loop rows calling `CustomerCareService.getHLR/getHSS/getSob/getOffers/getDedicatedAccounts`, build CSV + Excel output via ExcelJS, update record to `finished`
+- [x] Task 3.3: Implement `download(id, type)` — query `CoreBulkEdaReports`, return input CSV path or output Excel path
+- [x] Task 3.4: Implement `delete(userId, id)` — owner check, delete files, remove DB record; preserve `UNAUTHORIZED_YOU_ARE_NOT_THE_OWNER` error message
+- [x] Task 3.5: Create `BulkEdaReportController` — 4 endpoints, `@UseGuards(PrivilegeGuard)`, `FileInterceptor` on upload, full Swagger
+- [x] Task 3.6: Create `BulkEdaReportModule` — import `SharedModule`, `CustomerCareModule`, `TypeOrmModule.forFeature([CoreBulkEdaReports])`
 
 ### Verification
 
-- [ ] `npm run build` passes
-- [ ] `npm run lint` passes
-- [ ] Module registered in `AppModule`
+- [x] `npm run build` passes
+- [x] `npm run lint` passes
+- [x] Module registered in `AppModule`
 
 ---
 
