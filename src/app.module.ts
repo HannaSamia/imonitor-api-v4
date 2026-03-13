@@ -32,6 +32,7 @@ import { BulkProcessingModule } from './modules/bulk-processing/bulk-processing.
 import { BulkEdaReportModule } from './modules/bulk-eda-report/bulk-eda-report.module';
 import { CdrDecoderModule } from './modules/cdr-decoder/cdr-decoder.module';
 import { BillRunModule } from './modules/bill-run/bill-run.module';
+import { TarrifLogModule } from './modules/tarrif-log/tarrif-log.module';
 import { CorrelationIdMiddleware } from './logger/correlation-id.middleware';
 import { RequestFilterMiddleware } from './shared/middleware/request-filter.middleware';
 import { RateLimiterMiddleware } from './shared/middleware/rate-limiter.middleware';
@@ -79,6 +80,7 @@ import { GlobalExceptionFilter } from './shared/filters/global-exception.filter'
     BulkEdaReportModule,
     CdrDecoderModule,
     BillRunModule,
+    TarrifLogModule,
   ],
   providers: [
     // Global guard — JWT auth on all routes (unless @Public())
