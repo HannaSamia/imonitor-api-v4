@@ -2,18 +2,22 @@
   "id": "phase3.9-background-jobs_20260313",
   "title": "Phase 3.9 — Background Jobs (Scheduler + Worker Scripts)",
   "type": "feature",
-  "status": "in_progress",
+  "status": "complete",
   "created": "2026-03-13T00:00:00Z",
-  "updated": "2026-03-13T01:00:00Z",
-  "current_phase": 1,
-  "current_task": "1.1",
+  "updated": "2026-03-13T05:00:00Z",
   "phases": {
     "total": 4,
-    "completed": 0
+    "completed": 4
   },
   "tasks": {
     "total": 20,
-    "completed": 0
+    "completed": 20
   },
-  "commits": []
+  "commits": [
+    "f9b06e7: feat: scaffold SchedulerModule with 6 cron job stubs",
+    "df50e2b: feat: add 6 background worker scripts",
+    "8bded1b: test: add SchedulerService unit tests; docs: update CLAUDE.md for phase 3.9",
+    "b2af1cd: chore: apply linter formatting; register phase 3.9 track",
+    "16b314b: feat: merge phase 3.9 to main, tag v0.3.9-migration-phase3.9"
+  ]
 }
