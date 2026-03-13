@@ -205,6 +205,35 @@ export const ErrorMessages = {
   TARRIF_NOT_CORRECT: 'The selected tarrif is incorrect',
   TARRIF_SAME_DATE: 'You cannot compare the same dates',
 
+  // Automated Report errors (preserving v3 automatedReportMessages)
+  AR_NO_EMAILS: "you can't created an automated report with no emails",
+  AR_NO_SFTP: "you can't created an automated report with no sftp settings",
+  AR_USED_REPORT_NOT_EXISTS: 'Used report could not be found',
+  AR_NOT_FOUND: 'Automated report not found',
+
+  // Automated Report success messages
+  AR_INSERTED: 'INSERT_AUTOMATED_REPORT_SUCCESS',
+  AR_UPDATED: 'Automated report updated successfully',
+  AR_DELETED: 'Automated report deleted successfully',
+  AR_ACTIVATED_DEACTIVATED: 'Automated report activated/deactivated successfully',
+  AR_FETCHED: 'Automated report fetching success',
+
+  // Audit Log success/error messages (preserving v3 auditLogsErrorMessages)
+  AUDIT_LOGS_TABLES_RETRIEVED: 'Audit logs tables successfully retrieved',
+  AUDIT_LOGS_DETAILS_RETRIEVED: 'Audit logs details successfully retrieved',
+  AUDIT_LOGS_OPERATIONS_RETRIEVED: 'Audit logs operations successfully retrieved',
+  AUDIT_MISSING_OPERATION: 'No operation selected',
+
+  // Utility messages (preserving v3 utilityMessages)
+  CONSOLIDATION_FAILED: 'Failed, the tables values are still not equal',
+  CONSOLIDATION_UPDATE_FAILED: "Failed, coudn't update the cosolidation Table",
+
+  // Deployment messages (preserving v3 successMessages / errorsMessages)
+  TABLE_FIELDS_FIXED: 'Table field successfully fixed',
+  MODULE_INSERTED: 'Module successfully inserted',
+  ERROR_WHILE_FIXING_TABLE_FIELDS: 'An error occurred while fixing table fields!',
+  ERROR_WHILE_INSERTING_MODULE: 'An error occurred while inserting module!',
+
   // Generic errors (preserving v3 typo for backward compat)
   ERROR_OCCURED: 'an error occured!',
   NOT_FOUND: 'You are lost',

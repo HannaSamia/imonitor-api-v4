@@ -15,7 +15,7 @@ NestJS migration of enterprise telecom monitoring API. Express.js v3 → NestJS 
 ```bash
 npm run build          # TypeScript compilation — MUST pass before commit
 npm run lint           # ESLint + Prettier — MUST pass before commit
-npm test               # Jest unit tests — 1105 tests, 52 suites
+npm test               # Jest unit tests — 1318 tests, 74 suites
 npm run test:cov       # Coverage report
 npm run test:e2e       # E2E tests (scaffold only until Phase 5)
 ```
@@ -34,7 +34,7 @@ npm run test:e2e       # E2E tests (scaffold only until Phase 5)
 | 3.5: Monitoring | `migration/phase-3.5-monitoring` | Done | `v0.3.5-migration-phase3.5` |
 | 3.6: Customer Care | `migration/phase-3.6-customer-care` | Done | `v0.3.6-migration-phase3.6` |
 | 3.7: Processing | `migration/phase-3.7-processing` | Done | `v0.3.7-migration-phase3.7` |
-| 3.8: Automation & Admin | `migration/phase-3.8-automation-admin` | Pending | — |
+| 3.8: Automation & Admin | `migration/phase-3.8-automation-admin` | Done | `v0.3.8-migration-phase3.8` |
 | 3.9: Background Jobs | `migration/phase-3.9-background-jobs` | Pending | — |
 | 4: Socket.IO | `migration/phase-4-socketio` | Pending | — |
 | 5: Testing & Validation | `migration/phase-5-testing` | Pending | `v1.0.0-nestjs-migration` |
@@ -219,6 +219,21 @@ GET `/cdr/history/:fromdate/:todate/:msisdn` `/cdr/history/:fromdate/:todate/:ms
 GET `/settrace/:sdpvip/:msisdn` `/unsettrace/:sdpvip/:msisdn` `/gettrace/:fromhour/:tohour/:sdpvip/:msisdn` `/gettrace/.../export` `/gettrace/.../export/raw`
 GET `/air/settrace/:msisdn` `/air/unsettrace/:msisdn` `/air/gettrace/:fromhour/:tohour/:msisdn` `/air/gettrace/.../export` `/air/download/trace/:fromhour/:tohour/:msisdn`
 GET `/trace/history/:fromdate/:todate` `/trace/pending` `/sellnshare/history/:fromdate/:todate/:msisdn`
+
+### Automated Reports (`api/v1/automatedreports`) — all JWT + PrivilegeGuard
+POST `/` PUT `/:id` DELETE `/:id`
+PUT `/change/status/:id`
+GET `/user` `/report/:id` `/:id`
+
+### AuditLog (`api/v1/auditlog`) — all JWT + PrivilegeGuard
+GET `/operations` `/:fromdate/:todate/:operation` `/:id/:request`
+
+### Utility (`api/v1/utilities`)
+GET `/ping` (Public)
+POST `/consolidate` (ApiKeyGuard)
+
+### Deployment (`api/v1/deploy`) — all JWT + PrivilegeGuard
+POST `/tablefields/:tableType` `/module`
 
 ### Health (`/health`) — Public
 DB ping, Redis ping, Memory heap 256MB

@@ -19,18 +19,18 @@ Entities already exist — focus is service + controller + DTOs.
 
 ### Tasks
 
-- [ ] Task 1.1: Create branch `migration/phase-3.8-automation-admin` from main
-- [ ] Task 1.2: DTOs — `SaveAutomatedReportDto`, `UpdateAutomatedReportDto`, `AutomatedReportDto`, `ListAutomatedReportDto` with class-validator + @ApiProperty
-- [ ] Task 1.3: `AutomatedReportService` — `create()`, `update()`, `delete()`, `toggleStatus()`, `listByUser()`, `listByReportId()`, `getById()` (with SFTP password decryption)
-- [ ] Task 1.4: `AutomatedReportController` — all 7 endpoints with Swagger, JWT + PrivilegeGuard
-- [ ] Task 1.5: `AutomatedReportModule` — wire entities (4), service, controller; register in `AppModule`
-- [ ] Task 1.6: Unit tests — `automated-report.service.spec.ts` + `automated-report.controller.spec.ts`
+- [x] Task 1.1: Create branch `migration/phase-3.8-automation-admin` from main
+- [x] Task 1.2: DTOs — `SaveAutomatedReportDto`, `UpdateAutomatedReportDto`, `AutomatedReportDto`, `ListAutomatedReportDto` with class-validator + @ApiProperty
+- [x] Task 1.3: `AutomatedReportService` — `create()`, `update()`, `delete()`, `toggleStatus()`, `listByUser()`, `listByReportId()`, `getById()` (with SFTP password decryption)
+- [x] Task 1.4: `AutomatedReportController` — all 7 endpoints with Swagger, JWT + PrivilegeGuard
+- [x] Task 1.5: `AutomatedReportModule` — wire entities (4), service, controller; register in `AppModule`
+- [x] Task 1.6: Unit tests — `automated-report.service.spec.ts` + `automated-report.controller.spec.ts`
 
 ### Verification
 
-- [ ] `npm run build` passes
-- [ ] All AutomatedReport service + controller tests pass
-- [ ] Commit: `feat: add AutomatedReport module (phase3.8-automation-admin_20260313)`
+- [x] `npm run build` passes
+- [x] All AutomatedReport service + controller tests pass
+- [x] Commit: `feat: add AutomatedReport module (phase3.8-automation-admin_20260313)`
 
 ---
 
@@ -40,17 +40,17 @@ All queries via `LegacyDataDbService` against `iMonitorData`.
 
 ### Tasks
 
-- [ ] Task 2.1: DTOs — `AuditLogBodyDto`, `AuditLogResponseDto<T>`, `TabularHeaderDto` (reuse pattern from existing modules if applicable)
-- [ ] Task 2.2: `AuditLogService` — `getTable(fromDate, toDate, operations[])` (dynamic header from `core_modules_tables`+`core_tables_field` + body from `V3_audit_logs_stats`), `getDetails(id, isRequest)` (UNCOMPRESS query), `getOperations()`
-- [ ] Task 2.3: `AuditLogController` — 3 endpoints with Swagger, JWT + PrivilegeGuard
-- [ ] Task 2.4: `AuditLogModule` — wire service, controller, import `LegacyDataDbModule`; register in `AppModule`
-- [ ] Task 2.5: Unit tests — `audit-log.service.spec.ts` + `audit-log.controller.spec.ts`
+- [x] Task 2.1: DTOs — `AuditLogBodyDto`, `AuditLogResponseDto<T>`, `TabularHeaderDto` (reuse pattern from existing modules if applicable)
+- [x] Task 2.2: `AuditLogService` — `getTable(fromDate, toDate, operations[])` (dynamic header from `core_modules_tables`+`core_tables_field` + body from `V3_audit_logs_stats`), `getDetails(id, isRequest)` (UNCOMPRESS query), `getOperations()`
+- [x] Task 2.3: `AuditLogController` — 3 endpoints with Swagger, JWT + PrivilegeGuard
+- [x] Task 2.4: `AuditLogModule` — wire service, controller, import `LegacyDataDbModule`; register in `AppModule`
+- [x] Task 2.5: Unit tests — `audit-log.service.spec.ts` + `audit-log.controller.spec.ts`
 
 ### Verification
 
-- [ ] `npm run build` passes
-- [ ] All AuditLog tests pass
-- [ ] Commit: `feat: add AuditLog module (phase3.8-automation-admin_20260313)`
+- [x] `npm run build` passes
+- [x] All AuditLog tests pass
+- [x] Commit: `feat: add AuditLog module (phase3.8-automation-admin_20260313)`
 
 ---
 
@@ -58,21 +58,21 @@ All queries via `LegacyDataDbService` against `iMonitorData`.
 
 ### Tasks
 
-- [ ] Task 3.1: **Utility DTOs** — `ConsolidateDto` (`{ tables: string[], date: string }`)
-- [ ] Task 3.2: **UtilityService** — `ping()` (trivial), `consolidate(tables, date)` (ETL flow config fetch → minutely→hourly→daily aggregation via raw SQL using `LegacyEtlDbService` + `LegacyDataDbService`, updates `V3_consolidation_check`)
-- [ ] Task 3.3: **UtilityController** — `GET /ping` (`@Public()`), `POST /consolidate` (`@UseGuards(ApiKeyGuard)`); Swagger decorators
-- [ ] Task 3.4: **UtilityModule** — wire service, controller, import `LegacyDataDbModule` + `LegacyEtlDbModule`; register in `AppModule`
-- [ ] Task 3.5: **Deployment DTOs** — `AppModuleDto`, `TableFieldsFixerDto` (response)
-- [ ] Task 3.6: **DeploymentService** — `fixTableFields(tableType)` (INFORMATION_SCHEMA introspection + bulk insert `core_tables_field`), `insertModule(dto)` (insert `core_modules` + bulk `core_privileges`)
-- [ ] Task 3.7: **DeploymentController** — 2 endpoints, JWT + PrivilegeGuard; Swagger decorators
-- [ ] Task 3.8: **DeploymentModule** — wire repos (CoreModules, CoreModulesTables, CoreTablesField, CorePrivileges, CoreApplicationUsers, CoreApplicationRoles), service, controller; register in `AppModule`
-- [ ] Task 3.9: Unit tests — `utility.service.spec.ts` + `deployment.service.spec.ts`
+- [x] Task 3.1: **Utility DTOs** — `ConsolidateDto` (`{ tables: string[], date: string }`)
+- [x] Task 3.2: **UtilityService** — `ping()` (trivial), `consolidate(tables, date)` (ETL flow config fetch → minutely→hourly→daily aggregation via raw SQL using `LegacyEtlDbService` + `LegacyDataDbService`, updates `V3_consolidation_check`)
+- [x] Task 3.3: **UtilityController** — `GET /ping` (`@Public()`), `POST /consolidate` (`@UseGuards(ApiKeyGuard)`); Swagger decorators
+- [x] Task 3.4: **UtilityModule** — wire service, controller, import `LegacyDataDbModule` + `LegacyEtlDbModule`; register in `AppModule`
+- [x] Task 3.5: **Deployment DTOs** — `AppModuleDto`, `TableFieldsFixerDto` (response)
+- [x] Task 3.6: **DeploymentService** — `fixTableFields(tableType)` (INFORMATION_SCHEMA introspection + bulk insert `core_tables_field`), `insertModule(dto)` (insert `core_modules` + bulk `core_privileges`)
+- [x] Task 3.7: **DeploymentController** — 2 endpoints, JWT + PrivilegeGuard; Swagger decorators
+- [x] Task 3.8: **DeploymentModule** — wire repos (CoreModules, CoreModulesTables, CoreTablesField, CorePrivileges, CoreApplicationUsers, CoreApplicationRoles), service, controller; register in `AppModule`
+- [x] Task 3.9: Unit tests — `utility.service.spec.ts` + `deployment.service.spec.ts`
 
 ### Verification
 
-- [ ] `npm run build` passes
-- [ ] All Utility + Deployment tests pass
-- [ ] Commit: `feat: add Utility and Deployment modules (phase3.8-automation-admin_20260313)`
+- [x] `npm run build` passes
+- [x] All Utility + Deployment tests pass
+- [x] Commit: `feat: add Utility and Deployment modules (phase3.8-automation-admin_20260313)`
 
 ---
 

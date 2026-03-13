@@ -33,6 +33,10 @@ import { BulkEdaReportModule } from './modules/bulk-eda-report/bulk-eda-report.m
 import { CdrDecoderModule } from './modules/cdr-decoder/cdr-decoder.module';
 import { BillRunModule } from './modules/bill-run/bill-run.module';
 import { TarrifLogModule } from './modules/tarrif-log/tarrif-log.module';
+import { AutomatedReportModule } from './modules/automated-report/automated-report.module';
+import { AuditLogModule } from './modules/audit-log/audit-log.module';
+import { UtilityModule } from './modules/utility/utility.module';
+import { DeploymentModule } from './modules/deployment/deployment.module';
 import { CorrelationIdMiddleware } from './logger/correlation-id.middleware';
 import { RequestFilterMiddleware } from './shared/middleware/request-filter.middleware';
 import { RateLimiterMiddleware } from './shared/middleware/rate-limiter.middleware';
@@ -81,6 +85,10 @@ import { GlobalExceptionFilter } from './shared/filters/global-exception.filter'
     CdrDecoderModule,
     BillRunModule,
     TarrifLogModule,
+    AutomatedReportModule,
+    AuditLogModule,
+    UtilityModule,
+    DeploymentModule,
   ],
   providers: [
     // Global guard — JWT auth on all routes (unless @Public())
