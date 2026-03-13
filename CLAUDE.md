@@ -33,7 +33,7 @@ npm run test:e2e       # E2E tests (scaffold only until Phase 5)
 | 3.4: Dashboards | `migration/phase-3.4-dashboards` | Done | `v0.3.4-migration-phase3.4` |
 | 3.5: Monitoring | `migration/phase-3.5-monitoring` | Done | `v0.3.5-migration-phase3.5` |
 | 3.6: Customer Care | `migration/phase-3.6-customer-care` | Done | `v0.3.6-migration-phase3.6` |
-| 3.7: Processing | `migration/phase-3.7-processing` | Pending | — |
+| 3.7: Processing | `migration/phase-3.7-processing` | Done | `v0.3.7-migration-phase3.7` |
 | 3.8: Automation & Admin | `migration/phase-3.8-automation-admin` | Pending | — |
 | 3.9: Background Jobs | `migration/phase-3.9-background-jobs` | Pending | — |
 | 4: Socket.IO | `migration/phase-4-socketio` | Pending | — |
