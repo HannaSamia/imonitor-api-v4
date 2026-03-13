@@ -130,21 +130,21 @@ Create the two missing TypeORM entities, all enums, all DTOs, and verify existin
 
 ### Tasks
 
-- [ ] Task 6.1: Create `TarrifLogService` — inject `CoreTarrifProcess` + `CoreTarrifRecords` repos + `LegacyDataDbService` + `SystemConfigService` + `DateHelperService`
-- [ ] Task 6.2: Implement `list()` — raw SQL on `CoreTarrifProcess` joining user name; format dates; join tariff name from iMonitorData `SERVICE_CLASSES` via `LegacyDataDbService`
-- [ ] Task 6.3: Implement `listTarrif()` — query iMonitorData `SERVICE_CLASSES` via `LegacyDataDbService` (`sc_code`, `sc_name` where `tarrif_id IS NOT NULL`)
-- [ ] Task 6.4: Implement `listTreeDates(id)` — resolve `tarrif_id` from iMonitorData, then query `CoreTarrifRecords` for available dates
-- [ ] Task 6.5: Implement `add(body, userId)` — validate dates (no future, no same-date), resolve tariff id from iMonitorData, insert `CoreTarrifProcess`, trigger external service via axios (`SystemKeys.tarrifProcessUrl`), rollback insert on failure
-- [ ] Task 6.6: Implement `download(id)` — check process exists, return HTML file path from `assets/tarrif/`; if missing, call pull endpoint (`SystemKeys.tarrifPullProcessUrl`) and return on `FILE_RESENT`
-- [ ] Task 6.7: Implement `delete(id, userId)` — find by id, block if `PENDING`/`PROCESSING`, soft-delete (set `isDeleted=1`, `deletedAt`, `deletedBy`)
-- [ ] Task 6.8: Create `TarrifLogController` — 6 endpoints at `api/v1/tarrif`, `@UseGuards(PrivilegeGuard)`, full Swagger (note: use `tarrif` not `tarriff` — match v3 contracts)
-- [ ] Task 6.9: Create `TarrifLogModule` — import `SharedModule`, `LegacyDataDbModule`, `TypeOrmModule.forFeature([CoreTarrifProcess, CoreTarrifRecords])`
+- [x] Task 6.1: Create `TarrifLogService` — inject `CoreTarrifProcess` + `CoreTarrifRecords` repos + `LegacyDataDbService` + `SystemConfigService` + `DateHelperService`
+- [x] Task 6.2: Implement `list()` — raw SQL on `CoreTarrifProcess` joining user name; format dates; join tariff name from iMonitorData `SERVICE_CLASSES` via `LegacyDataDbService`
+- [x] Task 6.3: Implement `listTarrif()` — query iMonitorData `SERVICE_CLASSES` via `LegacyDataDbService` (`sc_code`, `sc_name` where `tarrif_id IS NOT NULL`)
+- [x] Task 6.4: Implement `listTreeDates(id)` — resolve `tarrif_id` from iMonitorData, then query `CoreTarrifRecords` for available dates
+- [x] Task 6.5: Implement `add(body, userId)` — validate dates (no future, no same-date), resolve tariff id from iMonitorData, insert `CoreTarrifProcess`, trigger external service via axios (`SystemKeys.tarrifProcessUrl`), rollback insert on failure
+- [x] Task 6.6: Implement `download(id)` — check process exists, return HTML file path from `assets/tarrif/`; if missing, call pull endpoint (`SystemKeys.tarrifPullProcessUrl`) and return on `FILE_RESENT`
+- [x] Task 6.7: Implement `delete(id, userId)` — find by id, block if `PENDING`/`PROCESSING`, soft-delete (set `isDeleted=1`, `deletedAt`, `deletedBy`)
+- [x] Task 6.8: Create `TarrifLogController` — 6 endpoints at `api/v1/tarrif`, `@UseGuards(PrivilegeGuard)`, full Swagger (note: use `tarrif` not `tarriff` — match v3 contracts)
+- [x] Task 6.9: Create `TarrifLogModule` — import `SharedModule`, `LegacyDataDbModule`, `TypeOrmModule.forFeature([CoreTarrifProcess, CoreTarrifRecords])`
 
 ### Verification
 
-- [ ] `npm run build` passes
-- [ ] `npm run lint` passes
-- [ ] Module registered in `AppModule`
+- [x] `npm run build` passes
+- [x] `npm run lint` passes
+- [x] Module registered in `AppModule`
 
 ---
 
