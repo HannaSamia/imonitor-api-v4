@@ -3,7 +3,7 @@
 **Track ID:** phase3.10-env-centralization_20260313
 **Spec:** [spec.md](./spec.md)
 **Created:** 2026-03-13
-**Status:** [ ] Not Started
+**Status:** [x] Complete
 
 ## Overview
 
@@ -44,16 +44,16 @@ read with `this.configService.get<string>('VAR_NAME')`.
 
 ### Tasks
 
-- [ ] Task 3.1: Run `npm test` — confirm all 1397 tests still pass
-- [ ] Task 3.2: Grep `process\.env` in `src/` — confirm no remaining hits in main-thread services
-- [ ] Task 3.3: Commit, push branch, merge to main, tag `v0.3.10-env-centralization`
+- [x] Task 3.1: Run `npm test` — confirm all 1397 tests still pass
+- [x] Task 3.2: Grep `process\.env` in `src/` — confirm no remaining hits in main-thread services
+- [~] Task 3.3: Commit, push branch, merge to main, tag `v0.3.10-env-centralization`
 
 ## Final Verification
 
-- [ ] All acceptance criteria met
-- [ ] `npm run build && npm run lint && npm test` all pass
-- [ ] No `process.env` in main-thread services outside exempt files
-- [ ] Ready for review
+- [x] All acceptance criteria met
+- [x] `npm run build && npm run lint && npm test` all pass
+- [x] No `process.env` in main-thread services outside exempt files
+- [x] Ready for review
 
 ---
 
