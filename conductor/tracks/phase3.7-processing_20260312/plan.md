@@ -108,19 +108,19 @@ Create the two missing TypeORM entities, all enums, all DTOs, and verify existin
 
 ### Tasks
 
-- [ ] Task 5.1: Create `BillRunService` — inject `CoreBillRunProcess` repo + `DateHelperService`; implement `list(userId)` as raw SQL on `CoreBillRunProcess` (filter by `createdBy`, format dates)
-- [ ] Task 5.2: Implement `add(file, name, userId)` — validate CSV extension, parse MSISDNs from `msisdn_key` column, calculate date range (`getFirstOfMonthAndDMinus1()`), save file, insert `CoreBillRunProcess` record, fire worker
-- [ ] Task 5.3: Implement `download(id, type, userId)` — query by id + createdBy, check status for OUTPUT, verify file exists
-- [ ] Task 5.4: Implement `delete(id, userId)` — query by id + createdBy, block if `PROCESSING`, delete files, hard-delete record
-- [ ] Task 5.5: Create worker stub `src/scripts/worker/billRun.worker.ts` — receives `BillRunWorkDto`, queries Presto via `LegacyPrestoService` for CDR + DA data, generates Excel output, updates `CoreBillRunProcess`
-- [ ] Task 5.6: Create `BillRunController` — 4 endpoints, `@UseGuards(PrivilegeGuard)`, `FileInterceptor` on add endpoint, full Swagger
-- [ ] Task 5.7: Create `BillRunModule` — import `SharedModule`, `LegacyPrestoModule`, `TypeOrmModule.forFeature([CoreBillRunProcess])`
+- [x] Task 5.1: Create `BillRunService` — inject `CoreBillRunProcess` repo + `DateHelperService`; implement `list(userId)` as raw SQL on `CoreBillRunProcess` (filter by `createdBy`, format dates)
+- [x] Task 5.2: Implement `add(file, name, userId)` — validate CSV extension, parse MSISDNs from `msisdn_key` column, calculate date range (`getFirstOfMonthAndDMinus1()`), save file, insert `CoreBillRunProcess` record, fire worker
+- [x] Task 5.3: Implement `download(id, type, userId)` — query by id + createdBy, check status for OUTPUT, verify file exists
+- [x] Task 5.4: Implement `delete(id, userId)` — query by id + createdBy, block if `PROCESSING`, delete files, hard-delete record
+- [x] Task 5.5: Create worker stub `src/scripts/worker/billRun.worker.ts` — receives `BillRunWorkDto`, queries Presto via `LegacyPrestoService` for CDR + DA data, generates Excel output, updates `CoreBillRunProcess`
+- [x] Task 5.6: Create `BillRunController` — 4 endpoints, `@UseGuards(PrivilegeGuard)`, `FileInterceptor` on add endpoint, full Swagger
+- [x] Task 5.7: Create `BillRunModule` — import `SharedModule`, `LegacyPrestoModule`, `TypeOrmModule.forFeature([CoreBillRunProcess])`
 
 ### Verification
 
-- [ ] `npm run build` passes
-- [ ] `npm run lint` passes
-- [ ] Module registered in `AppModule`
+- [x] `npm run build` passes
+- [x] `npm run lint` passes
+- [x] Module registered in `AppModule`
 
 ---
 
